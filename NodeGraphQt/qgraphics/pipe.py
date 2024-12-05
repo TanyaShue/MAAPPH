@@ -358,11 +358,16 @@ class PipeItem(QtWidgets.QGraphicsPathItem):
             self._draw_direction_pointer()
             return
 
+        if pos1.x() < pos2.x():  # 判断起始点是否位于终点左侧
+            if direction is LayoutDirectionEnum.HORIZONTAL.value:
+                self._draw_path_cycled_horizontal(start_port, pos1, pos2, path)
+                self._draw_direction_pointer()
+                return
+
         if direction is LayoutDirectionEnum.VERTICAL.value:
             self._draw_path_vertical(start_port, pos1, pos2, path)
         elif direction is LayoutDirectionEnum.HORIZONTAL.value:
             self._draw_path_horizontal(start_port, pos1, pos2, path)
-
         self._draw_direction_pointer()
 
     def reset_path(self):
