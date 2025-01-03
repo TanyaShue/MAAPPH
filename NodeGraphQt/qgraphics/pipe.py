@@ -36,11 +36,11 @@ class PipeItem(QtWidgets.QGraphicsPathItem):
         self._color = PipeEnum.COLOR.value
         self._style = PipeEnum.DRAW_TYPE_DEFAULT.value
         self._active = False
-        self._highlight = False
+        self._highlight = True
         self._input_port = input_port
         self._output_port = output_port
 
-        size = 6.0
+        size = 20.0
         self._poly = QtGui.QPolygonF()
         self._poly.append(QtCore.QPointF(-size, size))
         self._poly.append(QtCore.QPointF(0.0, -size * 1.5))

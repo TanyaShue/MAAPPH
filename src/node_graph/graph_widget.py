@@ -6,7 +6,7 @@ from Qt.QtGui import QPalette,QColor
 
 from NodeGraphQt import NodeGraph, BaseNode,NodeBaseWidget
 from Qt.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox,
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox,QHBoxLayout,
     QComboBox, QMessageBox,QGraphicsItem,QFrame,QGroupBox,QSizePolicy
 )
 
@@ -84,6 +84,7 @@ class SmoothCollapsiblePanel(QWidget):
         self.header_height = self.header.sizeHint().height()
         self.content_widget.setMaximumHeight(200)  # Default content height
         self.setMaximumHeight(self.header_height + 200)
+        # self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
     def add_content(self, widget):
         """Add content to the panel."""
@@ -119,43 +120,91 @@ class CustomWidget(QWidget):
     def __init__(self):
         super().__init__()
 
-        # 移除固定宽度限制
-        # self.setMinimumWidth(300)
-        # self.setMaximumWidth(400)
-
-        # 设置背景颜色为蓝色
+        # 设置背景
         palette = self.palette()
-        palette.setColor(QPalette.Window, QColor("blue"))
         self.setPalette(palette)
         self.setAutoFillBackground(True)
 
         # 使用垂直布局
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)  # 添加一些边距
-        layout.setSpacing(10)  # 设置面板之间的间距
+        layout.setContentsMargins(10, 10, 10, 10)  # 添加边距
+        layout.setSpacing(10)  # 设置面板间距
 
-        # 创建并添加面板
-        panel1 = SmoothCollapsiblePanel("个人信息")
-        panel1.add_content(QLabel("姓名：张三"))
-        panel1.add_content(QLabel("邮箱：zhangsan@example.com"))
+        # 第一个面板：识别方法
+        panel1 = SmoothCollapsiblePanel("Recognition Settings")
+        recognition_layout = QHBoxLayout()
+        recognition_label = QLabel("Recognition Method:")
+        recognition_combo = QComboBox()
+        recognition_combo.addItems([
+            "DirectHit", "TemplateMatch", "FeatureMatch",
+            "ColorMatch", "OCR", "NeuralNetworkClassify",
+            "NeuralNetworkDetect", "Custom"
+        ])
+
+        # 调整样式
+        recognition_label.setStyleSheet("font-weight: bold;")
+
+        recognition_layout.addWidget(recognition_label)
+        recognition_layout.addWidget(recognition_combo)
+        recognition_layout.addStretch()  # 添加弹性空间
+
+        panel1_widget = QWidget()
+        panel1_widget.setLayout(recognition_layout)
+        panel1.add_content(panel1_widget)
         layout.addWidget(panel1)
 
-        panel2 = SmoothCollapsiblePanel("工作详情")
-        panel2.add_content(QLabel("公司：科技有限公司"))
-        panel2.add_content(QLabel("职位：软件工程师"))
+        # 第二个面板：动作方法
+        panel2 = SmoothCollapsiblePanel("Action Settings")
+        action_layout = QHBoxLayout()
+        action_label = QLabel("Action Method:")
+        action_combo = QComboBox()
+        action_combo.addItems([
+            "DoNothing", "Click", "Swipe", "Key",
+            "InputText", "StartApp", "StopApp",
+            "StopTask", "Custom"
+        ])
+
+        # 调整样式
+        action_layout.addWidget(action_label)
+        action_layout.addWidget(action_combo)
+        action_layout.addStretch()  # 添加弹性空间
+
+        panel2_widget = QWidget()
+        panel2_widget.setLayout(action_layout)
+        panel2.add_content(panel2_widget)
         layout.addWidget(panel2)
 
-        advanced_group = SmoothCollapsiblePanel("Advanced Settings")
-        advanced_group.add_content(QLabel("Advanced Settings"))
-        advanced_group.add_content(QLabel("邮箱：zhangsan@example.com"))
-        advanced_group.add_content(QLabel("邮箱：zhangsan@example.com"))
-        layout.addWidget(advanced_group)
+        # 第三个面板：速率限制和超时
+        panel3 = SmoothCollapsiblePanel("Rate Limit and Timeout")
+        rate_timeout_layout = QVBoxLayout()
+
+        # 速率限制
+        rate_limit_label = QLabel("Rate Limit:")
+        rate_limit_input = QLineEdit()
+        rate_limit_input.setPlaceholderText("1000")
+
+        # 超时
+        timeout_label = QLabel("Timeout:")
+        timeout_input = QLineEdit()
+        timeout_input.setPlaceholderText("1000")
+
+        rate_timeout_layout.addWidget(rate_limit_label)
+        rate_timeout_layout.addWidget(rate_limit_input)
+        rate_timeout_layout.addSpacing(20)  # 添加间隔
+        rate_timeout_layout.addWidget(timeout_label)
+        rate_timeout_layout.addWidget(timeout_input)
+        rate_timeout_layout.addStretch()  # 添加弹性空间
+
+        panel3_widget = QWidget()
+        panel3_widget.setLayout(rate_timeout_layout)
+        panel3.add_content(panel3_widget)
+        layout.addWidget(panel3)
 
         # 添加弹性空间，确保布局向上对齐
         layout.addStretch()
-        #设置大小策略为QSizePolicy.Minimum，以便面板可以自动调整大小
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
+        # 设置大小策略为 QSizePolicy.Minimum
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
     def sizeHint(self):
         # 根据内容动态调整大小
@@ -166,7 +215,7 @@ class CustomWidget(QWidget):
         return self.layout().minimumSize()
 
     def apply_settings(self):
-        # 在这里收集和处理设置
+        # 收集和处理设置
         print("Settings applied!")
 
 class DynamicNodeWidgetWrapper(NodeBaseWidget):
@@ -181,7 +230,7 @@ class DynamicNodeWidgetWrapper(NodeBaseWidget):
         self.set_name("dynamic_widget")
 
         # Set the label above the widget
-        self.set_label("Dynamic Input Fields")
+        # self.set_label("Dynamic Input Fields")
 
         # Set the custom widget
         self.set_custom_widget(CustomWidget())
@@ -271,8 +320,10 @@ class MyNode(BaseNode):
         super(MyNode, self).__init__()
 
         # create input and output port.
-        self.add_input('in')
-        self.add_output('out')
+        self.add_input('in',multi_input=True)
+        self.add_output('next',)
+        self.add_output('interrupt')
+        self.add_output('error')
 
         # add custom widget to node with "node.view" as the parent.
         node_widget = DynamicNodeWidgetWrapper(self.view)
@@ -283,6 +334,7 @@ class MyNode(BaseNode):
 class TaskNodeGraph(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        debugger = True
         layout = QtWidgets.QVBoxLayout(self)
         self.node_graph = NodeGraph()
         self.node_graph.register_node(MyNode)

@@ -1,7 +1,178 @@
+from PySide2.QtGui import QPixmap, Qt, QPainter, QColor, QImage, QPen
 from PySide2.QtWidgets import (
     QWidget, QVBoxLayout, QLabel,
-    QTableWidget, QTableWidgetItem
+    QTableWidget, QTableWidgetItem, QHBoxLayout, QPushButton
 )
+from PySide2.QtCore import QPoint, QRect
+import os
+import time
+from datetime import datetime
+
+from src.ui.menu_widget import ADBConnection
+
+
+class CoordinateLabel(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.start_pos = None
+        self.end_pos = None
+        self.show_coordinates = False
+        self.setMouseTracking(True)
+        self.is_drawing = False
+        self.original_image = None
+        self.cropped_image = None  # 这里将存储QPixmap而不是QImage
+        self.last_screenshot_path = None
+
+    def mousePressEvent(self, event):
+        if self.show_coordinates and self.pixmap():
+            self.is_drawing = True
+            self.start_pos = self._convert_coordinates(event.pos())
+            self.end_pos = None
+            self.update()
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if self.show_coordinates and self.pixmap() and self.is_drawing:
+            self.is_drawing = False
+            self.end_pos = self._convert_coordinates(event.pos())
+            self.update()
+        super().mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.show_coordinates and self.pixmap() and self.is_drawing:
+            self.end_pos = self._convert_coordinates(event.pos())
+            self.update()
+        super().mouseMoveEvent(event)
+
+    def _convert_coordinates(self, pos):
+        """Convert coordinates to 1280x720 scale"""
+        if not self.pixmap():
+            return QPoint(0, 0)
+
+        current_width = self.pixmap().width()
+        current_height = self.pixmap().height()
+        target_width = 1280
+        target_height = 720
+
+        scaled_x = int((pos.x() / current_width) * target_width)
+        scaled_y = int((pos.y() / current_height) * target_height)
+
+        # Ensure coordinates are within bounds
+        scaled_x = max(0, min(scaled_x, target_width))
+        scaled_y = max(0, min(scaled_y, target_height))
+
+        return QPoint(scaled_x, scaled_y)
+
+    def take_screenshot(self):
+        """Take screenshot of selected region"""
+        if not self.original_image or not self.start_pos or not self.end_pos:
+            return None
+
+        # Create img directory if it doesn't exist
+        if not os.path.exists('img'):
+            os.makedirs('img')
+
+        # Convert coordinates to original image scale
+        orig_width = self.original_image.width()
+        orig_height = self.original_image.height()
+
+        start_x = int((self.start_pos.x() * orig_width) / 1280)
+        start_y = int((self.start_pos.y() * orig_height) / 720)
+        end_x = int((self.end_pos.x() * orig_width) / 1280)
+        end_y = int((self.end_pos.y() * orig_height) / 720)
+
+        # Ensure correct order of coordinates
+        x = min(start_x, end_x)
+        y = min(start_y, end_y)
+        width = abs(end_x - start_x)
+        height = abs(end_y - start_y)
+
+        # Convert QImage to QPixmap for cropping
+        pixmap = QPixmap.fromImage(self.original_image)
+        # Crop the image
+        cropped = pixmap.copy(QRect(x, y, width, height))
+
+        # Save with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filepath = f'img/screenshot_{timestamp}.png'
+        cropped.save(filepath)
+
+        self.cropped_image = cropped  # Store as QPixmap
+        self.last_screenshot_path = filepath
+        self.update()
+        return filepath
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+
+        if not self.show_coordinates:
+            return
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        # Calculate text position
+        x = self.width() - 200  # Offset from right edge
+        y = 20  # Initial offset from top
+
+        # Draw coordinates
+        if self.start_pos:
+            text_lines = [f"起点: ({self.start_pos.x()}, {self.start_pos.y()})"]
+            if self.end_pos:
+                text_lines.append(f"终点: ({self.end_pos.x()}, {self.end_pos.y()})")
+                width = abs(self.end_pos.x() - self.start_pos.x())
+                height = abs(self.end_pos.y() - self.start_pos.y())
+                text_lines.append(f"roi:[{self.start_pos.x}, {self.start_pos.y}, {width}, {height}]")
+
+            if self.last_screenshot_path:
+                text_lines.append(f"已保存: {self.last_screenshot_path}")
+
+            # Draw text with outline
+            for line in text_lines:
+                # Draw black outline
+                painter.setPen(QColor(0, 0, 0))
+                for dx in [-1, 1]:
+                    for dy in [-1, 1]:
+                        painter.drawText(x + dx, y + dy, line)
+
+                # Draw white text
+                painter.setPen(QColor(255, 255, 255))
+                painter.drawText(x, y, line)
+                y += 20
+
+        # Draw selection rectangle
+        if self.start_pos and self.end_pos and self.pixmap():
+            current_width = self.pixmap().width()
+            current_height = self.pixmap().height()
+
+            start_x = (self.start_pos.x() * current_width) / 1280
+            start_y = (self.start_pos.y() * current_height) / 720
+            end_x = (self.end_pos.x() * current_width) / 1280
+            end_y = (self.end_pos.y() * current_height) / 720
+
+            painter.setPen(QPen(QColor(0, 255, 0), 2))
+            painter.setBrush(QColor(0, 255, 0, 50))
+            painter.drawRect(min(start_x, end_x), min(start_y, end_y),
+                             abs(end_x - start_x), abs(end_y - start_y))
+
+        # Draw cropped image preview
+        if self.cropped_image:
+            preview_width = 160  # Preview width
+            preview_height = int(preview_width * self.cropped_image.height() / self.cropped_image.width())
+            preview_x = self.width() - preview_width - 20
+            preview_y = y + 10  # Position below the text
+
+            # Scale the QPixmap
+            preview = self.cropped_image.scaled(preview_width, preview_height,
+                                                Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
+            # Draw the preview QPixmap
+            painter.drawPixmap(preview_x, preview_y, preview)
+
+            # Draw border around preview
+            painter.setPen(QPen(QColor(255, 255, 255), 2))
+            painter.setBrush(Qt.NoBrush)
+            painter.drawRect(preview_x, preview_y, preview.width(), preview.height())
 
 
 class DataDisplayWidget(QWidget):
@@ -9,23 +180,52 @@ class DataDisplayWidget(QWidget):
         super().__init__()
         layout = QVBoxLayout(self)
 
-        title = QLabel("数据总览")
-        layout.addWidget(title)
+        # Control Buttons Layout
+        button_layout = QHBoxLayout()
+        buttons = ["刷新", "设置", "截图", "录屏", "更多", "获取roi", "区域截图"]
+        for btn_text in buttons:
+            btn = QPushButton(btn_text)
+            if btn_text == "刷新":
+                btn.clicked.connect(self.refresh_screen)
+            elif btn_text == "获取roi":
+                btn.clicked.connect(self.toggle_roi_mode)
+            elif btn_text == "区域截图":
+                btn.clicked.connect(self.take_roi_screenshot)
+            button_layout.addWidget(btn)
+        layout.addLayout(button_layout)
 
-        self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["任务ID", "任务名称", "状态", "进度"])
+        # Screen Display
+        self.screen_label = CoordinateLabel()
+        self.screen_label.setMinimumSize(640, 360)
+        layout.addWidget(self.screen_label)
 
-        # 示例数据
-        sample_data = [
-            ["001", "数据处理", "进行中", "60%"],
-            ["002", "报告生成", "已完成", "100%"],
-            ["003", "数据分析", "未开始", "0%"]
-        ]
+        # ADB Connection
+        self.adb_connection = ADBConnection()
 
-        self.table.setRowCount(len(sample_data))
-        for row, row_data in enumerate(sample_data):
-            for col, value in enumerate(row_data):
-                self.table.setItem(row, col, QTableWidgetItem(value))
+        # Initial screen refresh
+        self.refresh_screen()
 
-        layout.addWidget(self.table)
+    def toggle_roi_mode(self):
+        self.screen_label.show_coordinates = not self.screen_label.show_coordinates
+        self.screen_label.start_pos = None
+        self.screen_label.end_pos = None
+        self.screen_label.cropped_image = None
+        self.screen_label.last_screenshot_path = None
+        self.screen_label.update()
+
+    def take_roi_screenshot(self):
+        self.screen_label.take_screenshot()
+
+    def refresh_screen(self):
+        """
+        Capture and display device screen
+        """
+        image = self.adb_connection.get_screen_capture()
+        if image:
+            self.screen_label.original_image = image  # Store original QImage
+            pixmap = QPixmap.fromImage(image)
+            self.screen_label.setPixmap(pixmap.scaled(
+                self.screen_label.size(),
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            ))
