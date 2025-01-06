@@ -14,10 +14,10 @@ from src.node_graph.graph_widget import TaskNodeGraph
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("设备屏幕管理")
+        self.setWindowTitle("MAAPPH")
         self.resize(1200, 800)
 
-        # 创建主中心窗口
+
         central_widget = QWidget()
         main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -42,6 +42,9 @@ class MainWindow(QMainWindow):
 
         # 右侧数据展示
         data_display = DataDisplayWidget()
+
+        data_display.screen_label.roi_selected.connect(settings_widget.update_roi_from_selection)
+        data_display.screen_label.target_selected.connect(settings_widget.update_target_from_selection)
 
         # 将三个部分添加到水平分割器
         horizontal_splitter.addWidget(left_widget)

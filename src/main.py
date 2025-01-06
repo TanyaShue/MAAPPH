@@ -1,5 +1,5 @@
 import sys
-from Qt.QtWidgets import QApplication, QMessageBox
+from PySide2.QtWidgets import QApplication
 
 from ui.main_window import MainWindow
 

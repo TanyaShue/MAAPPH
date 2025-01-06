@@ -1,9 +1,9 @@
 from PySide2.QtGui import QPixmap, Qt, QPainter, QColor, QImage, QPen
 from PySide2.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel,
+    QWidget, QVBoxLayout, QLabel, QMenu,
     QTableWidget, QTableWidgetItem, QHBoxLayout, QPushButton
 )
-from PySide2.QtCore import QPoint, QRect
+from PySide2.QtCore import QPoint, QRect, Signal
 import os
 import time
 from datetime import datetime
@@ -12,6 +12,9 @@ from src.ui.menu_widget import ADBConnection
 
 
 class CoordinateLabel(QLabel):
+    roi_selected = Signal(QPoint, QPoint)
+    target_selected = Signal(QPoint, QPoint)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.start_pos = None
@@ -20,19 +23,35 @@ class CoordinateLabel(QLabel):
         self.setMouseTracking(True)
         self.is_drawing = False
         self.original_image = None
-        self.cropped_image = None  # 这里将存储QPixmap而不是QImage
+        self.cropped_image = None
         self.last_screenshot_path = None
+        self.context_menu = QMenu(self)
+
+        # 创建上下文菜单项
+        self.set_roi_action = self.context_menu.addAction("设置ROI")
+        self.set_target_action = self.context_menu.addAction("设置Target")
+        self.screenshot_action = self.context_menu.addAction("截图")
+
+        # 连接菜单动作到相应的处理函数
+        self.set_roi_action.triggered.connect(self.set_roi)
+        self.set_target_action.triggered.connect(self.set_target)
+        self.screenshot_action.triggered.connect(self.take_screenshot)
 
     def mousePressEvent(self, event):
         if self.show_coordinates and self.pixmap():
-            self.is_drawing = True
-            self.start_pos = self._convert_coordinates(event.pos())
-            self.end_pos = None
-            self.update()
+            if event.button() == Qt.LeftButton:
+                # 右键开始绘制
+                self.is_drawing = True
+                self.start_pos = self._convert_coordinates(event.pos())
+                self.end_pos = None
+                self.update()
+            elif event.button() == Qt.RightButton:
+                # 左键显示菜单
+                self.context_menu.popup(self.mapToGlobal(event.pos()))
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self.show_coordinates and self.pixmap() and self.is_drawing:
+        if self.show_coordinates and self.pixmap() and event.button() == Qt.LeftButton and self.is_drawing:
             self.is_drawing = False
             self.end_pos = self._convert_coordinates(event.pos())
             self.update()
@@ -43,6 +62,16 @@ class CoordinateLabel(QLabel):
             self.end_pos = self._convert_coordinates(event.pos())
             self.update()
         super().mouseMoveEvent(event)
+
+    def set_roi(self):
+        """打印ROI坐标"""
+        if self.start_pos and self.end_pos:
+            self.roi_selected.emit(self.start_pos, self.end_pos)
+
+    def set_target(self):
+        """打印target坐标"""
+        if self.start_pos and self.end_pos:
+            self.target_selected.emit(self.start_pos, self.end_pos)
 
     def _convert_coordinates(self, pos):
         """Convert coordinates to 1280x720 scale"""
@@ -112,7 +141,7 @@ class CoordinateLabel(QLabel):
         painter.setRenderHint(QPainter.Antialiasing)
 
         # Calculate text position
-        x = self.width() - 200  # Offset from right edge
+        x = self.width() - 300  # Offset from right edge
         y = 20  # Initial offset from top
 
         # Draw coordinates
@@ -122,7 +151,7 @@ class CoordinateLabel(QLabel):
                 text_lines.append(f"终点: ({self.end_pos.x()}, {self.end_pos.y()})")
                 width = abs(self.end_pos.x() - self.start_pos.x())
                 height = abs(self.end_pos.y() - self.start_pos.y())
-                text_lines.append(f"roi:[{self.start_pos.x}, {self.start_pos.y}, {width}, {height}]")
+                text_lines.append(f"roi:[{self.start_pos.x()}, {self.start_pos.y()}, {width}, {height}]")
 
             if self.last_screenshot_path:
                 text_lines.append(f"已保存: {self.last_screenshot_path}")

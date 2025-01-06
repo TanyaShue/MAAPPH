@@ -55,8 +55,8 @@ class ADBConnection:
         """
         try:
             # Run ADB command to capture screen
-            capture_cmd = f'D:\\leidian\\LDPlayer9\\adb.exe -s {self.host}:{self.port} shell screencap -p /sdcard/screen.png'
-            pull_cmd = f'D:\\leidian\\LDPlayer9\\adb.exe -s {self.host}:{self.port} pull /sdcard/screen.png screen.png'
+            capture_cmd = f'D:\\leidian\\LDPlayer9\\adb.exe -s emulator-5554 shell screencap -p /sdcard/screen.png'
+            pull_cmd = f'D:\\leidian\\LDPlayer9\\adb.exe -s emulator-5554 pull /sdcard/screen.png screen.png'
 
             subprocess.run(capture_cmd, shell=True, check=True)
             subprocess.run(pull_cmd, shell=True, check=True)
