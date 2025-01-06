@@ -1,9 +1,9 @@
 import subprocess
 from typing import Optional
 
+from Qt.QtCore import Qt
 from Qt.QtGui import QImage
 from Qt.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QLineEdit, QHBoxLayout
-from Qt.QtCore import Qt
 
 
 class MenuWidget(QWidget):

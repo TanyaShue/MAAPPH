@@ -1,14 +1,14 @@
 import json
 
-from Qt.QtCore import QPropertyAnimation, QEasingCurve, QRect,QSize
 from Qt import QtWidgets
-from Qt.QtGui import QPalette,QColor
-
-from NodeGraphQt import NodeGraph, BaseNode,NodeBaseWidget
+from Qt.QtCore import QPropertyAnimation, QEasingCurve
 from Qt.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QCheckBox,QHBoxLayout,
-    QComboBox, QMessageBox,QGraphicsItem,QFrame,QGroupBox,QSizePolicy
+    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout,
+    QComboBox, QSizePolicy
 )
+
+from NodeGraphQt import NodeGraph, BaseNode, NodeBaseWidget
+
 
 class SmoothCollapsiblePanel(QWidget):
     def __init__(self, title="Panel", parent=None):

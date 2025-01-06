@@ -1,14 +1,12 @@
-from PySide2.QtWidgets import (
-    QMainWindow, QWidget, QHBoxLayout,
-    QVBoxLayout, QSplitter
-)
 from PySide2.QtCore import Qt
-from PySide2.QtGui import QPalette, QColor
+from PySide2.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QSplitter
+)
 
+from src.node_graph.graph_widget import TaskNodeGraph
+from src.ui.data_display import DataDisplayWidget
 from src.ui.menu_widget import MenuWidget
 from src.ui.settings_widget import SettingsWidget
-from src.ui.data_display import DataDisplayWidget
-from src.node_graph.graph_widget import TaskNodeGraph
 
 
 class MainWindow(QMainWindow):

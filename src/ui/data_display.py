@@ -1,12 +1,12 @@
-from PySide2.QtGui import QPixmap, Qt, QPainter, QColor, QImage, QPen
+import os
+from datetime import datetime
+
+from PySide2.QtCore import QPoint, QRect, Signal
+from PySide2.QtGui import QPixmap, Qt, QPainter, QColor, QPen
 from PySide2.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QMenu,
-    QTableWidget, QTableWidgetItem, QHBoxLayout, QPushButton
+    QHBoxLayout, QPushButton
 )
-from PySide2.QtCore import QPoint, QRect, Signal
-import os
-import time
-from datetime import datetime
 
 from src.ui.menu_widget import ADBConnection
 

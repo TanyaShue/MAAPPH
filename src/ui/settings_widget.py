@@ -1,9 +1,10 @@
+from dataclasses import dataclass
+from typing import List, Optional
+
 from PySide2.QtCore import Signal, QPoint
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
                                QCheckBox, QSpinBox, QLineEdit, QTextEdit, QScrollArea,
                                QDoubleSpinBox, QFrame)
-from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass

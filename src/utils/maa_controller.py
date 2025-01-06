@@ -1,10 +1,11 @@
-from typing import Optional, List, Dict, Any
-from maa.resource import Resource
+from typing import Optional, Dict, Any
+
 from maa.controller import AdbController
+from maa.custom_recognition import CustomRecognition
+from maa.notification_handler import NotificationHandler
+from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
-from maa.custom_recognition import CustomRecognition
-from maa.notification_handler import NotificationHandler, NotificationType
 
 
 class MaaController:
