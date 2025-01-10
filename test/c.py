@@ -1,7 +1,11 @@
 import sys
+
+import maa
 from Qt.QtWidgets import (
     QApplication, QVBoxLayout, QLabel, QGroupBox, QWidget
 )
+from maa.toolkit import Toolkit
+
 
 class CollapsiblePanel(QGroupBox):
     def __init__(self, title, content, *args, **kwargs):
@@ -43,7 +47,9 @@ class MainWindow(QWidget):
         self.resize(300, 200)
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+    # app = QApplication(sys.argv)
+    # window = MainWindow()
+    # window.show()
+    # sys.exit(app.exec_())
+    adb_devices = Toolkit.find_adb_devices()
+    print(adb_devices)

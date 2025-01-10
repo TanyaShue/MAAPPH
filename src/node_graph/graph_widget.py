@@ -341,7 +341,7 @@ class TaskNodeGraph(QtWidgets.QWidget):
         self.node_graph.set_acyclic(False)
         self.node_graph.set_pipe_style(2)
         self.node_graph.set_grid_mode(False)
-        json_file_path = "test.json"  # 替换为实际的 JSON 文件路径
+        json_file_path = "src/test.json"  # 替换为实际的 JSON 文件路径
         try:
             with open(json_file_path, "r", encoding="utf-8") as file:
                 task_data = json.load(file)

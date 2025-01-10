@@ -1,0 +1,12 @@
+{
+    "adb_config": {
+        "adb_path": "D:\\leidian\\LDPlayer9\\adb.exe",
+        "adb_address": "emulator-5554",
+        "screencap_methods": 18446744073709551559,
+        "input_methods": 18446744073709551607,
+        "config": {}
+    },
+    "log_level": "INFO",
+    "maa_user_path": "./",
+    "maa_resource_path": "./resource/yys_base"
+}

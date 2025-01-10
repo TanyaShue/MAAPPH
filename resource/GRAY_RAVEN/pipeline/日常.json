@@ -1,0 +1,115 @@
+{
+  "一键日常": {
+    "action": "Custom",
+    "custom_action": "TaskList",
+    "custom_action_param": {
+      "task_list": [
+      "领取每日任务奖励",
+      "执行宿舍任务",
+      "领取每日任务奖励"
+      ]
+    },
+    "on_error": "返回主页"
+  },
+  "领取每日任务奖励": {
+    "next": "点击任务"
+  },
+  "点击任务": {
+    "recognition": "OCR",
+    "action": "Click",
+    "next": "点击每日任务",
+    "post_delay": 1000,
+    "roi": [
+      833,
+      291,
+      199,
+      58
+    ],
+    "expected": "任务"
+  },
+  "点击每日任务": {
+    "recognition": "OCR",
+    "action": "Click",
+    "next": "点击一键领取",
+    "roi": [
+      12,
+      277,
+      228,
+      71
+    ],
+    "expected": "每日"
+  },
+  "点击一键领取": {
+    "recognition": "OCR",
+    "action": "Click",
+    "next": "日常_点击屏幕继续",
+    "roi": [
+      1068,
+      99,
+      176,
+      105
+    ],
+    "expected": "一键领取"
+  },
+  "日常_点击屏幕继续": {
+    "action": "Click",
+    "next": "返回主页",
+    "post_delay": 1000,
+    "target": [
+      30,
+      246,
+      113,
+      312
+    ]
+  },
+  "执行宿舍任务": {
+    "next": "点击宿舍",
+    "interrupt": "展开菜单"
+  },
+  "点击宿舍": {
+    "recognition": "OCR",
+    "action": "Click",
+    "next": "完成宿舍事件",
+    "expected": "宿舍"
+  },
+  "展开菜单": {
+    "action": "Click",
+    "target": [
+      1172,
+      486,
+      65,
+      40
+    ]
+  },
+  "完成宿舍事件": {
+    "action": "Custom",
+    "custom_action": "TaskList",
+    "custom_action_param": {
+      "task_list": [
+        "完成事件",
+        ""
+      ]
+    }
+  },
+  "完成事件": {
+    "recognition": "FeatureMatch",
+    "action": "Click",
+    "next": "点击一下底部",
+    "roi": [
+      868,
+      612,
+      128,
+      107
+    ],
+    "template": "完成事件.png"
+  },
+  "点击一下底部": {
+    "action": "Click",
+    "target": [
+      288,
+      603,
+      686,
+      82
+    ]
+  }
+}

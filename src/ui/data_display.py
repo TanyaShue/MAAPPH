@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from functools import partial
 
 from PySide2.QtCore import QPoint, QRect, Signal
 from PySide2.QtGui import QPixmap, Qt, QPainter, QColor, QPen
@@ -8,7 +9,7 @@ from PySide2.QtWidgets import (
     QHBoxLayout, QPushButton
 )
 
-from src.ui.menu_widget import ADBConnection
+from src.utils.maa_controller import MaaController
 
 
 class CoordinateLabel(QLabel):
@@ -19,7 +20,7 @@ class CoordinateLabel(QLabel):
         super().__init__(parent)
         self.start_pos = None
         self.end_pos = None
-        self.show_coordinates = False
+        self.show_coordinates = True
         self.setMouseTracking(True)
         self.is_drawing = False
         self.original_image = None
@@ -28,8 +29,8 @@ class CoordinateLabel(QLabel):
         self.context_menu = QMenu(self)
 
         # 创建上下文菜单项
-        self.set_roi_action = self.context_menu.addAction("设置ROI")
-        self.set_target_action = self.context_menu.addAction("设置Target")
+        self.set_roi_action = self.context_menu.addAction("设置为ROI")
+        self.set_target_action = self.context_menu.addAction("设置为Target")
         self.screenshot_action = self.context_menu.addAction("截图")
 
         # 连接菜单动作到相应的处理函数
@@ -211,13 +212,13 @@ class DataDisplayWidget(QWidget):
 
         # Control Buttons Layout
         button_layout = QHBoxLayout()
-        buttons = ["刷新", "设置", "截图", "录屏", "更多", "获取roi", "区域截图"]
+        buttons = ["刷新", "获取roi(开)", "区域截图","设置"]
         for btn_text in buttons:
             btn = QPushButton(btn_text)
             if btn_text == "刷新":
                 btn.clicked.connect(self.refresh_screen)
-            elif btn_text == "获取roi":
-                btn.clicked.connect(self.toggle_roi_mode)
+            elif btn_text == "获取roi(开)":
+                btn.clicked.connect(partial(self.toggle_roi_mode, btn))
             elif btn_text == "区域截图":
                 btn.clicked.connect(self.take_roi_screenshot)
             button_layout.addWidget(btn)
@@ -229,18 +230,24 @@ class DataDisplayWidget(QWidget):
         layout.addWidget(self.screen_label)
 
         # ADB Connection
-        self.adb_connection = ADBConnection()
+        self.adb_connection = MaaController()
 
         # Initial screen refresh
-        self.refresh_screen()
+        # self.refresh_screen()
 
-    def toggle_roi_mode(self):
+    def toggle_roi_mode(self,button):
         self.screen_label.show_coordinates = not self.screen_label.show_coordinates
         self.screen_label.start_pos = None
         self.screen_label.end_pos = None
         self.screen_label.cropped_image = None
         self.screen_label.last_screenshot_path = None
         self.screen_label.update()
+
+        # 更新按钮文本
+        if self.screen_label.show_coordinates:
+            button.setText("获取roi(开)")
+        else:
+            button.setText("获取roi(关)")
 
     def take_roi_screenshot(self):
         self.screen_label.take_screenshot()

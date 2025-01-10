@@ -1,3 +1,6 @@
+import asyncio
+import os
+
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QSplitter
@@ -5,13 +8,18 @@ from PySide2.QtWidgets import (
 
 from src.node_graph.graph_widget import TaskNodeGraph
 from src.ui.data_display import DataDisplayWidget
-from src.ui.menu_widget import MenuWidget
-from src.ui.settings_widget import SettingsWidget
+from src.ui.setting_widget import SettingWidget
+from src.ui.note_widget import NoteWidget
+from src.utils.app_config import Config, AdbConfig
+from src.utils.maa_controller import MaaController
+from qasync import QEventLoop  # 确保安装了 qasync: pip install qasync
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.app_config = None
+        self.MaaController = MaaController()
         self.setWindowTitle("MAAPPH")
         self.resize(1200, 800)
 
@@ -28,25 +36,22 @@ class MainWindow(QMainWindow):
         horizontal_splitter = QSplitter(Qt.Horizontal)
         self.setup_splitter_appearance(horizontal_splitter)
 
-        # 左侧菜单
+        # 左侧设置面板
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(5, 5, 5, 5)
-        menu_widget = MenuWidget()
-        left_layout.addWidget(menu_widget)
+        setting_widget = SettingWidget()
+        left_layout.addWidget(setting_widget)
 
-        # 中间设置面板
-        settings_widget = SettingsWidget()
+        # 中间节点面板
+        note_widget = NoteWidget()
 
         # 右侧数据展示
         data_display = DataDisplayWidget()
-
-        data_display.screen_label.roi_selected.connect(settings_widget.update_roi_from_selection)
-        data_display.screen_label.target_selected.connect(settings_widget.update_target_from_selection)
-
+        self.data_display = data_display
         # 将三个部分添加到水平分割器
-        horizontal_splitter.addWidget(left_widget)
-        horizontal_splitter.addWidget(settings_widget)
+        horizontal_splitter.addWidget(setting_widget)
+        horizontal_splitter.addWidget(note_widget)
         horizontal_splitter.addWidget(data_display)
 
         # 设置比例为40:20:40
@@ -76,6 +81,41 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
+        # 连接信号
+        data_display.screen_label.roi_selected.connect(note_widget.update_roi_from_selection)
+        data_display.screen_label.target_selected.connect(note_widget.update_target_from_selection)
+        setting_widget.connect_adb_signal.connect(self.initialize_controller)
+        setting_widget.connect_resource_signal.connect(self.initialize_resource)
+
+
+    async def async_initialize_controller(self, adb_config: AdbConfig, user_path: str = "./"):
+
+
+        successes = await asyncio.to_thread(
+            self.MaaController.connect_adb,
+            user_path,
+            adb_config
+        )
+
+        if successes:
+            print("MAA初始化成功")
+            self.data_display.refresh_screen()
+    async def async_initialize_resource(self,resource_path: str):
+        successes = await asyncio.to_thread(
+            self.MaaController.connect_resource,
+            resource_path,
+        )
+
+        if successes:
+            print("MAA资源初始化成功")
+
+    def initialize_controller(self, adb_config: AdbConfig, user_path: str = "./"):
+        asyncio.create_task(self.async_initialize_controller(adb_config, user_path))
+
+    def initialize_resource(self, maa_resource_path: str):
+        asyncio.create_task(self.async_initialize_resource(maa_resource_path))
+            
+            # self.MaaController.tasker.post_pipeline("打开游戏")
     def setup_splitter_appearance(self, splitter):
         """设置分割器的外观"""
         # 设置分割条的宽度
