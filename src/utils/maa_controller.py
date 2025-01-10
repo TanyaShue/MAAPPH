@@ -73,7 +73,7 @@ class MaaController:
             # Initialize Tasker
             self._tasker = Tasker()
             self._tasker.bind(self.resource, self.controller)
-            self._tasker.post_pipeline("打开游戏").wait()
+            # self._tasker.post_pipeline("打开游戏").wait()
 
             return self._tasker.inited
 

@@ -55,17 +55,17 @@ class MainWindow(QMainWindow):
         horizontal_splitter.addWidget(data_display)
 
         # 设置比例为40:20:40
-        horizontal_splitter.setStretchFactor(0, 4)
+        horizontal_splitter.setStretchFactor(0, 2)
         horizontal_splitter.setStretchFactor(1, 2)
         horizontal_splitter.setStretchFactor(2, 4)
 
-        # 设置初始大小
-        total_width = 1200
-        horizontal_splitter.setSizes([
-            int(total_width * 0.4),
-            int(total_width * 0.2),
-            int(total_width * 0.4)
-        ])
+        # # 设置初始大小
+        # total_width = 1200
+        # horizontal_splitter.setSizes([
+        #     int(total_width * 0.4),
+        #     int(total_width * 0.2),
+        #     int(total_width * 0.4)
+        # ])
 
         # 下半部分节点图
         node_graph = TaskNodeGraph()
@@ -84,6 +84,7 @@ class MainWindow(QMainWindow):
         # 连接信号
         data_display.screen_label.roi_selected.connect(note_widget.update_roi_from_selection)
         data_display.screen_label.target_selected.connect(note_widget.update_target_from_selection)
+        data_display.screen_label.recognition_from_roi_signal.connect(note_widget.update_expected_from_recognition)
         setting_widget.connect_adb_signal.connect(self.initialize_controller)
         setting_widget.connect_resource_signal.connect(self.initialize_resource)
 

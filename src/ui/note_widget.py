@@ -6,6 +6,8 @@ from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCombo
                                QCheckBox, QSpinBox, QLineEdit, QTextEdit, QScrollArea,
                                QDoubleSpinBox, QFrame)
 
+from src.utils.maa_controller import MaaController
+
 
 @dataclass
 class BasicSettings:
@@ -22,6 +24,11 @@ class AlgorithmSettings:
     roi_offset: List[int] = None  # [x, y, w, h]
     threshold: float = 0.7
 
+@dataclass
+class TargetSettings:
+    expected: str = ""
+    target: str = ""
+    target_offset: List[int] = None
 
 @dataclass
 class ActionSettings:
@@ -53,6 +60,7 @@ class NodeSettings:
         self.action = ActionSettings()
         self.flow = FlowSettings()
         self.timing = TimingSettings()
+        self.target = TargetSettings()
 
 
 class NoteWidget(QWidget):
@@ -62,6 +70,7 @@ class NoteWidget(QWidget):
         self.settings = settings or NodeSettings()
         self.init_ui()
         self.load_settings()
+        self.maa_controller = MaaController()
 
     def init_ui(self):
         # 创建主布局
@@ -85,6 +94,7 @@ class NoteWidget(QWidget):
         groups = [
             ("基础配置", self.create_basic_group),
             ("算法配置", self.create_algo_group),
+            ("目标配置", self.create_target_group),
             ("动作配置", self.create_action_group),
             ("任务流配置", self.create_flow_group),
             ("时间配置", self.create_timing_group)
@@ -106,6 +116,24 @@ class NoteWidget(QWidget):
         row.addWidget(widget)
         return row
 
+    def create_target_group(self):
+        group = QFrame()
+        layout = QVBoxLayout(group)
+
+        title = QLabel("目标配置")
+        title.setStyleSheet("font-weight: bold;")
+        layout.addWidget(title)
+
+        self.expected_target_edit = QLineEdit()
+        self.expected_target_offset_edit = QLineEdit()
+
+        self.expected_target_edit.setPlaceholderText("true/任务名/[x,y,w,h]")
+        self.expected_target_edit.setPlaceholderText("[x, y, w, h]")
+
+        layout.addLayout(self.create_row("expected:", self.expected_target_edit))
+        layout.addLayout(self.create_row("template:", self.expected_target_offset_edit))
+
+        return group
     def create_basic_group(self):
         group = QFrame()
         layout = QVBoxLayout(group)
@@ -380,3 +408,25 @@ class NoteWidget(QWidget):
 
             # 更新settings对象
             self.settings.action.target = [x, y, width, height]
+
+    def update_expected_from_recognition(self, start_pos: QPoint, end_pos: QPoint):
+        """根据识别结果更新Expected设置"""
+        if start_pos and end_pos:
+            x = min(start_pos.x(), end_pos.x())
+            y = min(start_pos.y(), end_pos.y())
+            width = abs(end_pos.x() - start_pos.x())
+            height = abs(end_pos.y() - start_pos.y())
+
+            # 更新Expected输入框
+            try:
+                results = self.maa_controller.tasker.post_pipeline("ocr",{
+                                                                    "ocr": {"timeout": 1000, "recognition": "OCR",
+                                                                            "expected": ".*",
+                                                                            "roi": [x, y, width, height]}}).wait().get()
+
+                print(results.nodes[0].recognition.best_result)
+                self.expected_target_edit.setText(results.nodes[0].recognition.best_result.text)
+            except Exception :
+                self.expected_target_edit.setText("")
+
+                self.expected_target_edit.setPlaceholderText("识别失败")

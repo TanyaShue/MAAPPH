@@ -15,7 +15,7 @@ from src.utils.maa_controller import MaaController
 class CoordinateLabel(QLabel):
     roi_selected = Signal(QPoint, QPoint)
     target_selected = Signal(QPoint, QPoint)
-
+    recognition_from_roi_signal = Signal(QPoint, QPoint)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.start_pos = None
@@ -32,11 +32,13 @@ class CoordinateLabel(QLabel):
         self.set_roi_action = self.context_menu.addAction("设置为ROI")
         self.set_target_action = self.context_menu.addAction("设置为Target")
         self.screenshot_action = self.context_menu.addAction("截图")
+        self.recognition_action = self.context_menu.addAction("识别为expected")
 
         # 连接菜单动作到相应的处理函数
         self.set_roi_action.triggered.connect(self.set_roi)
         self.set_target_action.triggered.connect(self.set_target)
         self.screenshot_action.triggered.connect(self.take_screenshot)
+        self.recognition_action.triggered.connect(self.recognition_from_roi)
 
     def mousePressEvent(self, event):
         if self.show_coordinates and self.pixmap():
@@ -204,6 +206,9 @@ class CoordinateLabel(QLabel):
             painter.setBrush(Qt.NoBrush)
             painter.drawRect(preview_x, preview_y, preview.width(), preview.height())
 
+    def recognition_from_roi(self):
+        if self.start_pos and self.end_pos:
+            self.recognition_from_roi_signal.emit(self.start_pos, self.end_pos)
 
 class DataDisplayWidget(QWidget):
     def __init__(self):
