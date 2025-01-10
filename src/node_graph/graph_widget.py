@@ -332,8 +332,10 @@ class MyNode(BaseNode):
     def on_input_connected(self, in_port, out_port):
         self.update()
 class TaskNodeGraph(QtWidgets.QWidget):
+
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.task_data = None
         debugger = True
         layout = QtWidgets.QVBoxLayout(self)
         self.node_graph = NodeGraph()
@@ -341,7 +343,16 @@ class TaskNodeGraph(QtWidgets.QWidget):
         self.node_graph.set_acyclic(False)
         self.node_graph.set_pipe_style(2)
         self.node_graph.set_grid_mode(False)
-        json_file_path = "src/test.json"  # 替换为实际的 JSON 文件路径
+
+        self.nodes = {}
+        # self.create_nodes()
+
+        viewer = self.node_graph.viewer()
+        layout.addWidget(viewer)
+
+    def create_nodes(self,json_file_path):
+        y_pos = 0
+        x_pos =0
         try:
             with open(json_file_path, "r", encoding="utf-8") as file:
                 task_data = json.load(file)
@@ -349,15 +360,6 @@ class TaskNodeGraph(QtWidgets.QWidget):
             print(FileNotFoundError)
 
         self.task_data = task_data
-        self.nodes = {}
-        self.create_nodes()
-
-        viewer = self.node_graph.viewer()
-        layout.addWidget(viewer)
-
-    def create_nodes(self):
-        y_pos = 0
-        x_pos =0
         # 创建节点
         for task_name, task_config in self.task_data.items():
             node = self.node_graph.create_node('io.github.jchanvfx.MyNode', name=task_name, pos=[x_pos, y_pos])

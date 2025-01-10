@@ -11,6 +11,7 @@ class SettingWidget(QWidget):
     # 信号定义
     connect_adb_signal = Signal(AdbConfig, str)
     connect_resource_signal = Signal(str)
+    open_pipeline_in_node_graph_signal = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -131,7 +132,8 @@ class SettingWidget(QWidget):
             file_layout = QHBoxLayout()
             file_label = QLabel(file_name)
             open_button = QPushButton("打开")
-            open_button.clicked.connect(partial(self.open_in_nodegraph, file_name))
+            pipeline_path = os.path.join(pipeline_dir, file_name)
+            open_button.clicked.connect(partial(self.open_in_node_graph, pipeline_path))
             file_layout.addWidget(file_label)
             file_layout.addStretch()
             file_layout.addWidget(open_button)
@@ -141,6 +143,7 @@ class SettingWidget(QWidget):
             self.json_files_layout.setContentsMargins(0, 0, 0, 0)
             self.json_files_layout.addWidget(container)
 
-    def open_in_nodegraph(self, file_name):
+    def open_in_node_graph(self, file_name):
         """打开 JSON 文件的占位方法"""
         print(f"打开文件: {file_name}")
+        self.open_pipeline_in_node_graph_signal.emit(file_name)
