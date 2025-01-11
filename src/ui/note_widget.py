@@ -10,6 +10,7 @@ from src.node_graph.graph_widget import MyNode
 from src.utils.maa_controller import MaaController
 
 
+# 基础节点设置
 @dataclass
 class BasicSettings:
     recognition: str = "DirectHit"
@@ -18,41 +19,42 @@ class BasicSettings:
     focus: bool = False
     inverse: bool = False
 
-
+# 节点匹配范围设置
 @dataclass
 class AlgorithmSettings:
     roi: List[int] = None  # [x, y, w, h]
     roi_offset: List[int] = None  # [x, y, w, h]
     threshold: float = 0.7
 
+# 节点匹配目标设置
 @dataclass
 class TargetSettings:
     expected: str = ""
     target: str = ""
     template: str =""
     target_offset: List[int] = None
-
+# 节点动作目标设置
 @dataclass
 class ActionSettings:
     target: str = ""  # can be "true", task name, or [x,y,w,h]
     target_offset: List[int] = None  # [x, y, w, h]
 
-
+# 节点流程设置
 @dataclass
 class FlowSettings:
     next: List[str] = None
     interrupt: List[str] = None
     on_error: List[str] = None
 
-
+# 节点时间设置
 @dataclass
 class TimingSettings:
-    rate_limit_ms: int = 1000
-    timeout_ms: int = 20000
-    pre_delay_ms: int = 200
-    post_delay_ms: int = 200
-    pre_freeze_ms: int = 0
-    post_freeze_ms: int = 0
+    rate_limit: int = 1000
+    timeout: int = 20000
+    pre_delay: int = 200
+    post_delay: int = 200
+    pre_wait_freezes: int = 0
+    post_wait_freezes: int = 0
 
 
 class TaskNode:
@@ -69,8 +71,10 @@ class NoteWidget(QWidget):
 
     def __init__(self, settings: Optional[TaskNode] = None):
         super().__init__()
+        self.node = None
+        self.main_layout = None
         self.settings_title = None
-        self.title_name :str = "初始化节点"
+        self.title_name :str = "默认节点"
         self.settings = settings or TaskNode()
         self.init_ui()
         self.load_settings()
@@ -78,7 +82,8 @@ class NoteWidget(QWidget):
 
     def init_ui(self):
         # 创建主布局
-        main_layout = QVBoxLayout(self)
+        # self.main_layout = QVBoxLayout(self)
+        setting_layout = QVBoxLayout(self)
 
         # 创建滚动区域
         scroll = QScrollArea()
@@ -110,7 +115,8 @@ class NoteWidget(QWidget):
             layout.addWidget(group)
 
         scroll.setWidget(content_widget)
-        main_layout.addWidget(scroll)
+        setting_layout.addWidget(scroll)
+        self.main_layout=setting_layout
 
     def create_row(self, label_text, widget):
         row = QHBoxLayout()
@@ -138,6 +144,7 @@ class NoteWidget(QWidget):
         layout.addLayout(self.create_row("template:", self.expected_target_offset_edit))
 
         return group
+
     def create_basic_group(self):
         group = QFrame()
         layout = QVBoxLayout(group)
@@ -322,12 +329,12 @@ class NoteWidget(QWidget):
             self.on_error_edit.setText('\n'.join(self.settings.flow.on_error))
 
         # 时间设置
-        self.rate_limit_spin.setValue(self.settings.timing.rate_limit_ms)
-        self.timeout_spin.setValue(self.settings.timing.timeout_ms)
-        self.pre_delay_spin.setValue(self.settings.timing.pre_delay_ms)
-        self.post_delay_spin.setValue(self.settings.timing.post_delay_ms)
-        self.pre_freeze_spin.setValue(self.settings.timing.pre_freeze_ms)
-        self.post_freeze_spin.setValue(self.settings.timing.post_freeze_ms)
+        self.rate_limit_spin.setValue(self.settings.timing.rate_limit)
+        self.timeout_spin.setValue(self.settings.timing.timeout)
+        self.pre_delay_spin.setValue(self.settings.timing.pre_delay)
+        self.post_delay_spin.setValue(self.settings.timing.post_delay)
+        self.pre_freeze_spin.setValue(self.settings.timing.pre_wait_freezes)
+        self.post_freeze_spin.setValue(self.settings.timing.post_wait_freezes)
 
     def get_settings(self) -> TaskNode:
         """从 UI 获取设置并返回 TaskNode 对象"""
@@ -380,12 +387,12 @@ class NoteWidget(QWidget):
             settings.flow.on_error = error_tasks.split('\n')
 
         # 时间设置
-        settings.timing.rate_limit_ms = self.rate_limit_spin.value()
-        settings.timing.timeout_ms = self.timeout_spin.value()
-        settings.timing.pre_delay_ms = self.pre_delay_spin.value()
-        settings.timing.post_delay_ms = self.post_delay_spin.value()
-        settings.timing.pre_freeze_ms = self.pre_freeze_spin.value()
-        settings.timing.post_freeze_ms = self.post_freeze_spin.value()
+        settings.timing.rate_limit = self.rate_limit_spin.value()
+        settings.timing.timeout = self.timeout_spin.value()
+        settings.timing.pre_delay = self.pre_delay_spin.value()
+        settings.timing.post_delay = self.post_delay_spin.value()
+        settings.timing.pre_wait_freezes = self.pre_freeze_spin.value()
+        settings.timing.post_wait_freezes = self.post_freeze_spin.value()
 
         return settings
 
@@ -446,19 +453,25 @@ class NoteWidget(QWidget):
                 self.expected_target_edit.setPlaceholderText("识别失败")
 
     def load_settings_from_node(self, node: MyNode):
-        """
-        Load settings from a MyNode instance's note_data attribute.
-        """
+        """Load settings from a MyNode instance's note_data attribute."""
         if not hasattr(node, 'note_data') or not isinstance(node.note_data, dict):
             print("Invalid node data. Skipping load.")
             return
-        # self.init_ui()
 
-        note_data = node.note_data
+        # 1. 清除现有布局
+        if self.main_layout:
+            while self.main_layout.count():
+                item = self.main_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+            QWidget().setLayout(self.main_layout)
+
+        # 2. 重置设置和标题
         self.settings = TaskNode()
+        self.node=node
+        self.title_name = node.NODE_NAME
+        note_data = node.note_data
         try:
-            self.title_name =node.NODE_NAME
-
             # Map note_data to TaskNode attributes
             self.settings.basic.recognition = note_data.get('recognition', self.settings.basic.recognition)
             self.settings.basic.action = note_data.get('action', self.settings.basic.action)
@@ -478,17 +491,19 @@ class NoteWidget(QWidget):
             self.settings.action.target_offset = note_data.get('target_offset', self.settings.action.target_offset)
 
             self.settings.flow.next = note_data.get('next', self.settings.flow.next)
+            print(self.settings.flow.next)
             self.settings.flow.interrupt = note_data.get('interrupt', self.settings.flow.interrupt)
             self.settings.flow.on_error = note_data.get('on_error', self.settings.flow.on_error)
 
-            self.settings.timing.rate_limit_ms = note_data.get('rate_limit_ms', self.settings.timing.rate_limit_ms)
-            self.settings.timing.timeout_ms = note_data.get('timeout_ms', self.settings.timing.timeout_ms)
-            self.settings.timing.pre_delay_ms = note_data.get('pre_delay_ms', self.settings.timing.pre_delay_ms)
-            self.settings.timing.post_delay_ms = note_data.get('post_delay_ms', self.settings.timing.post_delay_ms)
-            self.settings.timing.pre_freeze_ms = note_data.get('pre_freeze_ms', self.settings.timing.pre_freeze_ms)
-            self.settings.timing.post_freeze_ms = note_data.get('post_freeze_ms', self.settings.timing.post_freeze_ms)
+            self.settings.timing.rate_limit = note_data.get('rate_limit', self.settings.timing.rate_limit)
+            self.settings.timing.timeout = note_data.get('timeout', self.settings.timing.timeout)
+            self.settings.timing.pre_delay = note_data.get('pre_delay', self.settings.timing.pre_delay)
+            self.settings.timing.post_delay = note_data.get('post_delay', self.settings.timing.post_delay)
+            self.settings.timing.pre_wait_freezes = note_data.get('pre_wait_freezes', self.settings.timing.pre_wait_freezes)
+            self.settings.timing.post_wait_freezes = note_data.get('post_wait_freezes', self.settings.timing.post_wait_freezes)
         except Exception as e:
             print(f"Error loading settings from node: {e}")
         # Update UI or other components
+        # 4. 重新初始化UI并加载设置
+        self.init_ui()
         self.load_settings()
-        print("Settings loaded from node.")
