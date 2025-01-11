@@ -87,7 +87,8 @@ class MainWindow(QMainWindow):
         data_display.screen_label.recognition_from_roi_signal.connect(note_widget.update_expected_from_recognition)
         setting_widget.connect_adb_signal.connect(self.initialize_controller)
         setting_widget.connect_resource_signal.connect(self.initialize_resource)
-        setting_widget.open_pipeline_in_node_graph_signal.connect(node_graph.create_nodes)
+        setting_widget.open_pipeline_in_node_graph_signal.connect(node_graph.create_nodes_from_json)
+        node_graph.note_select.connect(note_widget.load_settings_from_node)
 
 
     async def async_initialize_controller(self, adb_config: AdbConfig, user_path: str = "./"):

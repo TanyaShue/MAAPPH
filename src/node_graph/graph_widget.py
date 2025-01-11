@@ -1,5 +1,7 @@
 import json
+from time import perf_counter
 
+from PySide2.QtCore import Signal
 from Qt import QtWidgets
 from Qt.QtCore import QPropertyAnimation, QEasingCurve
 from Qt.QtWidgets import (
@@ -110,11 +112,17 @@ class SmoothCollapsiblePanel(QWidget):
             self.panel_height_animation.setEndValue(self.header_height + 200)
 
             self.toggle_button.setText("\u25bc")  # Down arrow
-
+        # Update the main window size
+        self.content_height_animation.valueChanged.connect(self.update_parent_size)
+        self.panel_height_animation.valueChanged.connect(self.update_parent_size)
         self.content_height_animation.start()
         self.panel_height_animation.start()
         self.is_expanded = not self.is_expanded
 
+    def update_parent_size(self):
+        """Notify the parent window to adjust size."""
+        if self.parent():
+            self.parent().adjustSize()
 
 class CustomWidget(QWidget):
     def __init__(self):
@@ -204,11 +212,7 @@ class CustomWidget(QWidget):
         layout.addStretch()
 
         # 设置大小策略为 QSizePolicy.Minimum
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-
-    def sizeHint(self):
-        # 根据内容动态调整大小
-        return self.layout().sizeHint()
+        # self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
     def minimumSizeHint(self):
         # 最小尺寸提示
@@ -262,6 +266,7 @@ class DynamicNodeWidgetWrapper(NodeBaseWidget):
         """
 
         pass
+
 class MyNode(BaseNode):
     """
     Example node.
@@ -324,33 +329,43 @@ class MyNode(BaseNode):
         self.add_output('next',)
         self.add_output('interrupt')
         self.add_output('error')
-
+        self.note_data = None
         # add custom widget to node with "node.view" as the parent.
         node_widget = DynamicNodeWidgetWrapper(self.view)
 
         self.add_custom_widget(node_widget, tab='Custom')
     def on_input_connected(self, in_port, out_port):
         self.update()
+
 class TaskNodeGraph(QtWidgets.QWidget):
+    note_select =Signal(MyNode)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.task_data = None
-        debugger = True
         layout = QtWidgets.QVBoxLayout(self)
         self.node_graph = NodeGraph()
+        from pathlib import Path
+        BASE_PATH = Path(__file__).parent.resolve()
+
+        hotkey_path = Path(BASE_PATH, 'hotkeys', 'hotkeys.json')
+        self.node_graph.set_context_menu_from_file(hotkey_path, 'graph')
         self.node_graph.register_node(MyNode)
         self.node_graph.set_acyclic(False)
         self.node_graph.set_pipe_style(2)
         self.node_graph.set_grid_mode(False)
-
+        self.node_graph.node_double_clicked.connect(self.on_node_double_clicked)
         self.nodes = {}
         # self.create_nodes()
 
         viewer = self.node_graph.viewer()
         layout.addWidget(viewer)
+    def on_node_double_clicked(self,node):
+        # print(node.name)
+        self.note_select.emit(node)
 
-    def create_nodes(self,json_file_path):
+
+    def create_nodes_from_json(self,json_file_path):
         y_pos = 0
         x_pos =0
         try:
@@ -363,23 +378,9 @@ class TaskNodeGraph(QtWidgets.QWidget):
         # 创建节点
         for task_name, task_config in self.task_data.items():
             node = self.node_graph.create_node('io.github.jchanvfx.MyNode', name=task_name, pos=[x_pos, y_pos])
+            node.note_data = task_config
+            # print(task_config)
             x_pos += 1000
             # y_pos += 100
             self.nodes[task_name] = node
 
-            # 设置节点属性
-
-            # for key, value in task_config.items():
-            #     if key in TaskNode.default_properties:
-            #         node.properties[key] = value
-            #         node._add_property_control(key, TaskNode.default_properties[key])
-
-        # # 连接节点
-        # for task_name, task_config in self.task_data.items():
-        #     if "next" in task_config:
-        #         next_nodes = task_config["next"]
-        #         if not isinstance(next_nodes, list):
-        #             next_nodes = [next_nodes]
-        #         for next_node_name in next_nodes:
-        #             if next_node_name in self.nodes:
-        #                 self.nodes[task_name].outputs()['next'].connect_to(self.nodes[next_node_name].inputs()[""])
