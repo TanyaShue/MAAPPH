@@ -4,7 +4,7 @@ from typing import List, Optional
 from PySide2.QtCore import QPoint
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
                                QCheckBox, QSpinBox, QLineEdit, QTextEdit, QScrollArea,
-                               QDoubleSpinBox, QFrame)
+                               QDoubleSpinBox, QFrame, QPushButton)
 
 from src.node_graph.graph_widget import MyNode
 from src.utils.maa_controller import MaaController
@@ -57,14 +57,19 @@ class TimingSettings:
     post_wait_freezes: int = 0
 
 
+
 class TaskNode:
     def __init__(self):
+        self.NODE_NAME:str = "默认节点"
         self.basic = BasicSettings()
         self.algorithm = AlgorithmSettings()
         self.action = ActionSettings()
         self.flow = FlowSettings()
         self.timing = TimingSettings()
         self.target = TargetSettings()
+
+    def __str__(self):
+        return f"TaskNode(NodeName={self.NODE_NAME}, basic={self.basic}, algorithm={self.algorithm}, action={self.action}, flow={self.flow}, timing={self.timing}, target={self.target})"
 
 
 class NoteWidget(QWidget):
@@ -74,7 +79,6 @@ class NoteWidget(QWidget):
         self.node = None
         self.main_layout = None
         self.settings_title = None
-        self.title_name :str = "默认节点"
         self.settings = settings or TaskNode()
         self.init_ui()
         self.load_settings()
@@ -95,9 +99,11 @@ class NoteWidget(QWidget):
         layout.setSpacing(10)
 
         # 标题
-        self.settings_title = QLabel(f"节点详情--{self.title_name}")
-        self.settings_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
-        layout.addWidget(self.settings_title)
+        self.settings_title = QLineEdit(self.settings.NODE_NAME)
+        # self.settings_title.setStyleSheet("font-size: 14pt; font-weight: bold;")
+
+        layout.addLayout(self.create_row("节点详情:", self.settings_title))
+        # layout.addWidget(self.settings_title)
 
         # 添加各个配置组
         groups = [
@@ -113,10 +119,20 @@ class NoteWidget(QWidget):
             group = create_func()
             group.setFrameStyle(QFrame.StyledPanel)
             layout.addWidget(group)
-
         scroll.setWidget(content_widget)
         setting_layout.addWidget(scroll)
+
+        # 添加保存按钮
+        save_button = QPushButton("保存")
+        save_button.clicked.connect(self.save_node)
+        setting_layout.addWidget(save_button)
+
         self.main_layout=setting_layout
+
+    def save_node(self):
+        self.settings=self.get_settings()
+        print(self.settings)
+
 
     def create_row(self, label_text, widget):
         row = QHBoxLayout()
@@ -291,8 +307,7 @@ class NoteWidget(QWidget):
 
     def load_settings(self):
         """从 TaskNode 加载设置到 UI"""
-        # QLabel(f"节点详情--{self.title_name}")
-        self.settings_title.setText(f"节点详情--{self.title_name}")
+        self.settings_title.setText(self.settings.NODE_NAME)
         # 基础设置
         self.recognition_combo.setCurrentText(self.settings.basic.recognition)
         self.action_combo.setCurrentText(self.settings.basic.action)
@@ -470,7 +485,7 @@ class NoteWidget(QWidget):
         # 2. 重置设置和标题
         self.settings = TaskNode()
         self.node=node
-        self.title_name = node.NODE_NAME
+        self.settings.NODE_NAME = node.NODE_NAME
         note_data = node.note_data
         try:
             # Map note_data to TaskNode attributes

@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         vertical_splitter.addWidget(horizontal_splitter)
         vertical_splitter.addWidget(node_graph)
         vertical_splitter.setStretchFactor(0, 1)
-        vertical_splitter.setStretchFactor(1, 1)
+        vertical_splitter.setStretchFactor(1, 2)
 
         # 将垂直分割器添加到主布局
         main_layout.addWidget(vertical_splitter)
