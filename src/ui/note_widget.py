@@ -9,34 +9,31 @@ from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCombo
 from src.node_graph.graph_widget import MyNode
 from src.utils.maa_controller import MaaController
 
+
+@dataclass
 class TaskNode:
-    def __init__(self):
-        self.NODE_NAME:str = "默认节点"
-        self.recognition: str = "DirectHit"
-        self.action: str = "DoNothing"
-        self.enabled: bool = True
-        self.focus: bool = False
-        self.inverse: bool = False
-        self.roi: List[int] = None  # [x, y, w, h]
-        self.roi_offset: List[int] = None  # [x, y, w, h]
-        self.threshold: float = 0.7
-        self.expected: str = ""
-        self.target: str = ""
-        self.template: str = ""
-        self.target_offset: List[int] = None
-        self.next: List[str] = None
-        self.interrupt: List[str] = None
-        self.on_error: List[str] = None
-        self.rate_limit: int = 1000
-        self.timeout: int = 20000
-        self.pre_delay: int = 200
-        self.post_delay: int = 200
-        self.pre_wait_freezes: int = 0
-        self.post_wait_freezes: int = 0
-
-
-    def __str__(self):
-        return f"TaskNode(NodeName={self.NODE_NAME}"
+    NODE_NAME: str = "默认节点"
+    recognition: str = "DirectHit"
+    action: str = "DoNothing"
+    enabled: bool = True
+    focus: bool = False
+    inverse: bool = False
+    roi: Optional[List[int]] = None  # [x, y, w, h]
+    roi_offset: Optional[List[int]] = None  # [x, y, w, h]
+    threshold: float = 0.7
+    expected: str = ""
+    target: str = ""
+    template: str = ""
+    target_offset: Optional[List[int]] = None
+    next: Optional[List[str]] = None
+    interrupt: Optional[List[str]] = None
+    on_error: Optional[List[str]] = None
+    rate_limit: int = 1000
+    timeout: int = 20000
+    pre_delay: int = 200
+    post_delay: int = 200
+    pre_wait_freezes: int = 0
+    post_wait_freezes: int = 0
 
 
 class NoteWidget(QWidget):
@@ -336,7 +333,7 @@ class NoteWidget(QWidget):
             settings.roi_offset = eval(roi_offset_text)
         settings.threshold = self.threshold_spin.value()
         # 动作设置
-        settings.action.target = self.target_edit.text()
+        settings.target = self.target_edit.text()
         target_offset_text = self.target_offset_edit.text()
         if target_offset_text:
             settings.action.target_offset = eval(target_offset_text)
