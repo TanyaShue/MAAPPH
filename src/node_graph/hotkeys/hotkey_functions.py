@@ -3,7 +3,19 @@
 # ------------------------------------------------------------------------------
 # menu command functions
 # ------------------------------------------------------------------------------
-
+def add_base_node(graph):
+    """
+    Add a base node to the node graph.
+    """
+    graph.create_node('io.github.jchanvfx.MyNode', name="task_name")
+    # graph.add_node('BaseNode')
+def reset_pos(graph):
+    """
+    Reset node graph position.
+    """
+    nodes=graph.all_nodes()
+    for node in nodes:
+        print(node.pos())
 
 def zoom_in(graph):
     """

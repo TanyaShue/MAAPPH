@@ -49,6 +49,26 @@
   },
   {
     "type":"menu",
+    "label":"&add_node",
+    "items":[
+      {
+        "type":"command",
+        "label":"add_base_node",
+        "file":"./hotkey_functions.py",
+        "function_name":"add_base_node",
+        "shortcut":"Shift+A"
+      }
+    ]
+  },
+  {
+    "type":"command",
+    "label":"&Reset Position",
+    "file":"./hotkey_functions.py",
+    "function_name":"reset_pos",
+    "shortcut":""
+  },
+  {
+    "type":"menu",
     "label":"&Edit",
     "items":[
       {

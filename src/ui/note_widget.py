@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from PySide2.QtCore import Signal, QPoint
+from PySide2.QtCore import QPoint
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
                                QCheckBox, QSpinBox, QLineEdit, QTextEdit, QScrollArea,
                                QDoubleSpinBox, QFrame)
@@ -396,10 +396,6 @@ class NoteWidget(QWidget):
 
         return settings
 
-    def request_roi_selection(self):
-        """请求选择ROI"""
-        self.roi_selection_requested.emit()
-
     def update_roi_from_selection(self, start_pos: QPoint, end_pos: QPoint):
         """根据选择更新ROI设置"""
         if start_pos and end_pos:
@@ -454,9 +450,14 @@ class NoteWidget(QWidget):
 
     def load_settings_from_node(self, node: MyNode):
         """Load settings from a MyNode instance's note_data attribute."""
-        if not hasattr(node, 'note_data') or not isinstance(node.note_data, dict):
-            print("Invalid node data. Skipping load.")
-            return
+        # if not hasattr(node, 'note_data') or not isinstance(node.note_data, dict):
+        #     print("Invalid node data. Skipping load.")
+        #     return
+        if not hasattr(node, 'note_data'):
+            node.NODE_NAME ="默认节点"
+        if not isinstance(node.note_data, dict):
+            node.note_data = {}
+
 
         # 1. 清除现有布局
         if self.main_layout:
@@ -491,7 +492,6 @@ class NoteWidget(QWidget):
             self.settings.action.target_offset = note_data.get('target_offset', self.settings.action.target_offset)
 
             self.settings.flow.next = note_data.get('next', self.settings.flow.next)
-            print(self.settings.flow.next)
             self.settings.flow.interrupt = note_data.get('interrupt', self.settings.flow.interrupt)
             self.settings.flow.on_error = note_data.get('on_error', self.settings.flow.on_error)
 

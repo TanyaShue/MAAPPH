@@ -73,8 +73,6 @@ class MaaController:
             # Initialize Tasker
             self._tasker = Tasker()
             self._tasker.bind(self.resource, self.controller)
-            # self._tasker.post_pipeline("打开游戏").wait()
-
             return self._tasker.inited
 
         except Exception as e:
@@ -175,13 +173,6 @@ class MaaController:
         """Perform a swipe action from start to end coordinates"""
         if self.controller:
             self.controller.post_swipe(start_x, start_y, end_x, end_y, duration_ms).wait()
-
-    def set_notification_handler(self, handler: NotificationHandler) -> None:
-        """Set a custom notification handler for the tasker"""
-        if self.tasker:
-            self.tasker = Tasker(notification_handler=handler)
-            if self.resource and self.controller:
-                self.tasker.bind(self.resource, self.controller)
 
     @property
     def is_initialized(self) -> bool:
