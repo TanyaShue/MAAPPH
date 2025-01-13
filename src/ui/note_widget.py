@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import List, Optional, Union
 from PySide2.QtCore import QPoint, Signal
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
@@ -6,31 +5,8 @@ from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCombo
                                QDoubleSpinBox, QFrame, QPushButton)
 from src.node_graph.graph_widget import MyNode
 from src.utils.maa_controller import MaaController
+from src.utils.task_node import TaskNode
 
-@dataclass
-class TaskNode:
-    NODE_NAME: Optional[str] = None
-    recognition: Optional[str] = None
-    action: Optional[str] = None
-    enabled: Optional[bool] = None
-    focus: Optional[bool] = None
-    inverse: Optional[bool] = None
-    roi: Optional[List[int]] = None
-    roi_offset: Optional[List[int]] = None
-    threshold: Optional[float] = None
-    expected: Optional[str] = None
-    target: Optional[Union[str, List[int]]] = None
-    template: Optional[Union[str, List[str]]] = None
-    target_offset: Optional[List[int]] = None
-    next: Optional[List[str]] = None
-    interrupt: Optional[List[str]] = None
-    on_error: Optional[List[str]] = None
-    rate_limit: Optional[int] = None
-    timeout: Optional[int] = None
-    pre_delay: Optional[int] = None
-    post_delay: Optional[int] = None
-    pre_wait_freezes: Optional[int] = None
-    post_wait_freezes: Optional[int] = None
 
 class NoteWidget(QWidget):
     settings_changed = Signal()
@@ -39,15 +15,14 @@ class NoteWidget(QWidget):
         self.node = None
         self.main_layout = None
         self.settings_title = None
-        self.settings = settings or TaskNode()
-
-        self.next_section = [""]
-        self.interrupt_section = [""]
-        self.on_error_section = [""]
+        self.sections = {}  # Store section layouts for easy access
+        self.input_fields = {}  # Store input fields for each section
+        self.settings =  TaskNode()
         self.init_ui()
         self.load_settings()
         self.setup_bindings()
         self.maa_controller = MaaController()
+        self.settings.signals.property_changed.connect(self.update_settings_when_property_changed)
 
     def init_ui(self):
         # 创建主布局
@@ -94,10 +69,64 @@ class NoteWidget(QWidget):
 
         self.main_layout=setting_layout
 
+    def update_settings_when_property_changed(self, field: str, value: object):
+        self.update_ui_from_settings(self.settings)
+
+    # def update_settings_when_property_changed(self, field: str, value: object):
+    #     print(f"Updated field '{field}' to value {value}")
+    #     # value = getattr(self.settings, field, None)
+    #     if value is None:
+    #         return
+    #
+    #     if field == 'NODE_NAME':
+    #         self.settings_title.setText(value)
+    #     elif field == 'recognition':
+    #         self.recognition_combo.setCurrentText(value)
+    #     elif field == 'action':
+    #         self.actions_combo.setCurrentText(value)
+    #     elif field == 'enabled':
+    #         self.enabled_check.setChecked(value)
+    #     elif field == 'focus':
+    #         self.focus_check.setChecked(value)
+    #     elif field == 'inverse':
+    #         self.inverse_check.setChecked(value)
+    #     elif field == 'roi':
+    #         self.roi_edit.setText(str(value))
+    #     elif field == 'roi_offset':
+    #         self.roi_offset_edit.setText(str(value))
+    #     elif field == 'threshold':
+    #         self.threshold_spin.setValue(value)
+    #     elif field == 'expected':
+    #         self.expected_edit.setText(value)
+    #     elif field == 'template':
+    #         self.template_edit.setText(value)
+    #     elif field == 'target':
+    #         self.target_edit.setText(str(value))
+    #     elif field == 'target_offset':
+    #         self.target_offset_edit.setText(str(value))
+    #     elif field == 'next':
+    #         self.update_section("next", value)
+    #     elif field == 'interrupt':
+    #         self.update_section("interrupt", value)
+    #     elif field == 'on_error':
+    #         self.update_section("on_error", value)
+    #     elif field == 'rate_limit':
+    #         self.rate_limit_spin.setValue(value)
+    #     elif field == 'timeout':
+    #         self.timeout_spin.setValue(value)
+    #     elif field == 'pre_delay':
+    #         self.pre_delay_spin.setValue(value)
+    #     elif field == 'post_delay':
+    #         self.post_delay_spin.setValue(value)
+    #     elif field == 'pre_wait_freezes':
+    #         self.pre_freeze_spin.setValue(value)
+    #     elif field == 'post_wait_freezes':
+    #         self.post_freeze_spin.setValue(value)
+    #     # self.settings[field] = value
     def save_node(self):
-        # self.settings=self.get_settings()
-        self.settings.on_error=["1"]
         print(self.settings)
+        # self.settings.roi = ["a", "b", "c", "d"]
+        # self.settings.next=["a", "b", "c", "d"]
 
     def create_row(self, label_text, widget):
         row = QHBoxLayout()
@@ -209,7 +238,6 @@ class NoteWidget(QWidget):
 
         return group
 
-
     def create_flow_group(self):
         group = QFrame()
         layout = QVBoxLayout(group)
@@ -218,103 +246,124 @@ class NoteWidget(QWidget):
         title.setStyleSheet("font-weight: bold;")
         layout.addWidget(title)
 
-        # Next Task Section
-        layout.addLayout(self.create_section("下一个任务:", "next"))
-        # Interrupt Task Section
-        layout.addLayout(self.create_section("中断任务:", "interrupt"))
-        # Error Handling Task Section
-        layout.addLayout(self.create_section("错误处理任务:", "on_error"))
+        # Create sections with their labels
+        sections_config = {
+            "next": "下一个任务:",
+            "interrupt": "中断任务:",
+            "on_error": "错误处理任务:"
+        }
+
+        for section_name, label_text in sections_config.items():
+            layout.addLayout(self.create_section(section_name, label_text))
 
         return group
 
-    def create_section(self, label_text, attribute):
-        section_layout = QVBoxLayout()
+    def create_section(self, section_name, label_text):
+        section_layout = QHBoxLayout()
+        self.sections[section_name] = section_layout
+        self.input_fields[section_name] = []
 
-        # Title label
         label = QLabel(label_text)
+        label.setFixedWidth(150)
         section_layout.addWidget(label)
 
-        # Scroll area to contain rows
+        right_container = QVBoxLayout()
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_area.setWidget(scroll_content)
 
-        # Add rows based on the current section data
-        self.update_section_ui(scroll_layout, attribute)
+        # Store scroll_layout for later access
+        self.sections[f"{section_name}_scroll"] = scroll_layout
 
-        # Add button to add new rows
+        right_container.addWidget(scroll_area)
+
         add_button = QPushButton("添加")
-        add_button.clicked.connect(lambda: self.add_row(scroll_layout, attribute))
+        add_button.setFixedWidth(60)
+        add_button.clicked.connect(lambda: self.add_row(section_name))
+        right_container.addWidget(add_button)
 
-        section_layout.addWidget(scroll_area)
-        section_layout.addWidget(add_button)
-
-        # Bind signal to refresh section UI
-        self.settings_changed.connect(lambda: self.update_section_ui(scroll_layout, attribute))
-
+        section_layout.addLayout(right_container)
         return section_layout
 
-    def add_row(self, scroll_layout, attribute, initial_value=""):
-        # Create a new row with input field and delete button
+    def update_section(self, section_name: str, values: list[str]):
+        """Create or update a section with the given values"""
+        if section_name not in self.sections:
+            return
+
+        # Clear existing rows
+        self.clear_section(section_name)
+
+        # Add new rows
+        for value in values:
+            self.add_row(section_name, value)
+
+    def get_section_values(self, section_name: str) -> list[str]:
+        """Get all non-empty values from a section"""
+        if section_name not in self.input_fields:
+            return []
+
+        return [field.text().strip()
+                for field in self.input_fields[section_name]
+                if field.text().strip()]
+
+    def add_row(self, section_name: str, initial_value: str = ""):
+        scroll_layout = self.sections.get(f"{section_name}_scroll")
+        if not scroll_layout:
+            return
+
         row_widget = QWidget()
         row_layout = QHBoxLayout(row_widget)
         row_layout.setContentsMargins(0, 0, 0, 0)
 
         input_field = QLineEdit()
-        input_field.setText(initial_value)
         input_field.setPlaceholderText("输入任务名称")
-        input_field.textChanged.connect(lambda: self.update_section_data(scroll_layout, attribute))
+        input_field.setText(initial_value)
+
+        # Connect the textChanged signal to the dynamic callback
+        callback_name = f"on_{section_name}_section_changed"
+        if hasattr(self, callback_name):
+            input_field.textChanged.connect(lambda: getattr(self, callback_name)())
 
         delete_button = QPushButton("删除")
-        delete_button.clicked.connect(lambda: self.remove_row(scroll_layout, row_widget, attribute))
+        delete_button.setFixedWidth(50)
+        delete_button.clicked.connect(
+            lambda: self.remove_row(section_name, row_widget, input_field))
 
         row_layout.addWidget(input_field)
         row_layout.addWidget(delete_button)
         scroll_layout.addWidget(row_widget)
 
-    def remove_row(self, scroll_layout, row_widget, attribute):
-        scroll_layout.removeWidget(row_widget)
-        row_widget.deleteLater()
-        self.update_section_data(scroll_layout, attribute)
+        self.input_fields[section_name].append(input_field)
 
-    def update_section_data(self, scroll_layout, attribute):
-        # Collect all input values from the scroll layout
-        section_data = []
-        for i in range(scroll_layout.count()):
-            widget = scroll_layout.itemAt(i).widget()
-            if widget:
-                input_field = widget.findChild(QLineEdit)
-                if input_field:
-                    text = input_field.text().strip()
-                    section_data.append(text)
+    def remove_row(self, section_name: str, row_widget: QWidget, input_field: QLineEdit):
+        scroll_layout = self.sections.get(f"{section_name}_scroll")
+        if scroll_layout:
+            scroll_layout.removeWidget(row_widget)
+            self.input_fields[section_name].remove(input_field)
+            row_widget.deleteLater()
 
-        # Update section data and sync with settings
-        setattr(self, f"{attribute}_section", section_data)
-        setattr(self.settings, attribute, section_data)
+            # Trigger the change callback
+            callback_name = f"on_{section_name}_section_changed"
+            if hasattr(self, callback_name):
+                getattr(self, callback_name)()
 
-    def update_section_ui(self, scroll_layout, attribute):
-        # Clear the current UI
-        while scroll_layout.count():
-            widget = scroll_layout.takeAt(0).widget()
-            if widget:
-                widget.deleteLater()
+    def clear_section(self, section_name: str):
+        """Clear all rows in a section"""
+        if section_name not in self.input_fields:
+            return
 
-        # Get the latest data for this section
-        section_data = getattr(self, f"{attribute}_section", [])
+        scroll_layout = self.sections.get(f"{section_name}_scroll")
+        if not scroll_layout:
+            return
 
-        # Recreate rows for each item in the section data
-        for value in section_data:
-            self.add_row(scroll_layout, attribute, value)
+        for input_field in self.input_fields[section_name]:
+            row_widget = input_field.parentWidget()
+            scroll_layout.removeWidget(row_widget)
+            row_widget.deleteLater()
 
-    def update_settings(self, new_settings):
-        # Update settings and refresh UI
-        self.settings = new_settings
-        self.next_section = self.settings.next
-        self.interrupt_section = self.settings.interrupt
-        self.on_error_section = self.settings.on_error
-        self.settings_changed.emit()
+        self.input_fields[section_name].clear()
 
     def create_timing_group(self):
         group = QFrame()
@@ -415,6 +464,7 @@ class NoteWidget(QWidget):
             self.post_freeze_spin.setValue(self.settings.post_wait_freezes)
 
     def update_roi_from_selection(self, start_pos: QPoint, end_pos: QPoint):
+
         """根据选择更新ROI设置"""
         if start_pos and end_pos:
             x = min(start_pos.x(), end_pos.x())
@@ -432,10 +482,6 @@ class NoteWidget(QWidget):
             y = min(start_pos.y(), end_pos.y())
             width = abs(end_pos.x() - start_pos.x())
             height = abs(end_pos.y() - start_pos.y())
-
-            # # 更新Target输入框
-            # target_text = f"[{x}, {y}, {width}, {height}]"
-            # self.target_edit.setText(target_text)
 
             # 更新settings对象
             self.settings.target = [x, y, width, height]
@@ -473,192 +519,131 @@ class NoteWidget(QWidget):
             node.NODE_NAME ="默认节点"
         if not isinstance(node.note_data, dict):
             node.note_data = {}
-
-
-        # 1. 清除现有布局
-        if self.main_layout:
-            while self.main_layout.count():
-                item = self.main_layout.takeAt(0)
-                if item.widget():
-                    item.widget().deleteLater()
-            QWidget().setLayout(self.main_layout)
-
-        # 2. 重置设置和标题
-        self.settings = TaskNode()
         self.node=node
         self.settings.NODE_NAME = node.NODE_NAME
         note_data = node.note_data
         try:
             # Map note_data to TaskNode attributes
-            self.settings.recognition = note_data.get('recognition', self.settings.recognition)
-            self.settings.action = note_data.get('action', self.settings.action)
-            self.settings.enabled = note_data.get('enabled', self.settings.enabled)
-            self.settings.focus = note_data.get('focus', self.settings.focus)
-            self.settings.inverse = note_data.get('inverse', self.settings.inverse)
+            self.settings.recognition = note_data.get('recognition')
+            self.settings.action = note_data.get('action')
+            self.settings.enabled = note_data.get('enabled')
+            self.settings.focus = note_data.get('focus')
+            self.settings.inverse = note_data.get('inverse')
 
-            self.settings.roi = note_data.get('roi', self.settings.roi)
-            self.settings.roi_offset = note_data.get('roi_offset', self.settings.roi_offset)
-            self.settings.threshold = note_data.get('threshold', self.settings.threshold)
+            self.settings.roi = note_data.get('roi')
+            self.settings.roi_offset = note_data.get('roi_offset')
+            self.settings.threshold = note_data.get('threshold')
 
-            self.settings.expected = note_data.get('expected', self.settings.expected)
-            self.settings.template = note_data.get('template', self.settings.template)
-            self.settings.target = note_data.get('target', self.settings.target)
-            self.settings.target_offset = note_data.get('target_offset', self.settings.target_offset)
+            self.settings.expected = note_data.get('expected')
+            self.settings.template = note_data.get('template')
+            self.settings.target = note_data.get('target')
+            self.settings.target_offset = note_data.get('target_offset')
 
-            self.settings.target = note_data.get('custom_action', note_data.get('target', self.settings.target))
-            self.settings.target_offset = note_data.get('target_offset', self.settings.target_offset)
+            self.settings.target = note_data.get('custom_action')
+            self.settings.target_offset = note_data.get('target_offset')
 
-            # self.settings.next = note_data.get('next', self.settings.next)
-            # self.settings.interrupt = note_data.get('interrupt', self.settings.interrupt)
-            # self.settings.on_error = note_data.get('on_error', self.settings.on_error)
+            self.settings.next = note_data.get('next')
+            self.settings.interrupt = note_data.get('interrupt')
+            self.settings.on_error = note_data.get('on_error')
 
-            self.settings.rate_limit = note_data.get('rate_limit', self.settings.rate_limit)
-            self.settings.timeout = note_data.get('timeout', self.settings.timeout)
-            self.settings.pre_delay = note_data.get('pre_delay', self.settings.pre_delay)
-            self.settings.post_delay = note_data.get('post_delay', self.settings.post_delay)
-            self.settings.pre_wait_freezes = note_data.get('pre_wait_freezes', self.settings.pre_wait_freezes)
-            self.settings.post_wait_freezes = note_data.get('post_wait_freezes', self.settings.post_wait_freezes)
+            self.settings.rate_limit = note_data.get('rate_limit')
+            self.settings.timeout = note_data.get('timeout')
+            self.settings.pre_delay = note_data.get('pre_delay')
+            self.settings.post_delay = note_data.get('post_delay')
+            self.settings.pre_wait_freezes = note_data.get('pre_wait_freezes')
+            self.settings.post_wait_freezes = note_data.get('post_wait_freezes')
         except Exception as e:
             print(f"Error loading settings from node: {e}")
-        # Update UI or other components
-        # 4. 重新初始化UI并加载设置
-        self.init_ui()
-        self.setup_bindings()
-        self.load_settings()
 
     def setup_bindings(self):
-        """设置 UI 控件与 settings 的双向绑定"""
-
-        # 基础设置绑定
+        """简单直接的双向绑定设置"""
+        # UI控件到settings的绑定
         self.settings_title.textChanged.connect(
             lambda text: setattr(self.settings, 'NODE_NAME', text))
-
         self.recognition_combo.currentTextChanged.connect(
             lambda text: setattr(self.settings, 'recognition', text))
-
         self.actions_combo.currentTextChanged.connect(
             lambda text: setattr(self.settings, 'action', text))
-
         self.enabled_check.stateChanged.connect(
             lambda state: setattr(self.settings, 'enabled', bool(state)))
-
         self.focus_check.stateChanged.connect(
             lambda state: setattr(self.settings, 'focus', bool(state)))
-
         self.inverse_check.stateChanged.connect(
             lambda state: setattr(self.settings, 'inverse', bool(state)))
-
-        # 算法设置绑定
         self.roi_edit.textChanged.connect(
             lambda text: setattr(self.settings, 'roi', text))
-
         self.roi_offset_edit.textChanged.connect(
             lambda text: setattr(self.settings, 'roi_offset', text))
-
         self.threshold_spin.valueChanged.connect(
             lambda value: setattr(self.settings, 'threshold', value))
-
-        # 目标设置绑定
         self.expected_edit.textChanged.connect(
             lambda text: setattr(self.settings, 'expected', text))
-
-        self.target_edit.textChanged.connect(
-            lambda text: setattr(self.settings, 'target', text))
-
-        self.target_offset_edit.textChanged.connect(
-            lambda text: setattr(self.settings, 'target_offset', text))
-
         self.template_edit.textChanged.connect(
             lambda text: setattr(self.settings, 'template', text))
-
-        # 任务流设置绑定
-        # self.next_edit.textChanged.connect(
-        #     lambda text: setattr(self.settings, 'next', text))
-        #
-        # self.interrupt_edit.textChanged.connect(
-        #     lambda text: setattr(self.settings, 'interrupt', text))
-        #
-        # self.on_error_edit.textChanged.connect(
-        #     lambda text: setattr(self.settings, 'on_error', text))
-
-        # 时间设置绑定
+        self.target_edit.textChanged.connect(
+            lambda text: setattr(self.settings, 'target', text))
+        self.target_offset_edit.textChanged.connect(
+            lambda text: setattr(self.settings, 'target_offset', text))
         self.rate_limit_spin.valueChanged.connect(
             lambda value: setattr(self.settings, 'rate_limit', value))
-
         self.timeout_spin.valueChanged.connect(
             lambda value: setattr(self.settings, 'timeout', value))
-
         self.pre_delay_spin.valueChanged.connect(
             lambda value: setattr(self.settings, 'pre_delay', value))
-
         self.post_delay_spin.valueChanged.connect(
             lambda value: setattr(self.settings, 'post_delay', value))
-
         self.pre_freeze_spin.valueChanged.connect(
             lambda value: setattr(self.settings, 'pre_wait_freezes', value))
-
         self.post_freeze_spin.valueChanged.connect(
             lambda value: setattr(self.settings, 'post_wait_freezes', value))
 
-        # 设置值变化时更新UI的绑定
-        def update_ui(name):
-            """当settings中的值改变时更新对应的UI控件"""
-            value = getattr(self.settings, name, None)
-            if value is None:
-                return
+    def update_ui_from_settings(self, settings):
+        """从settings更新UI控件的值"""
+        self.settings = settings
+        if not settings:
+            return
 
-            if name == 'NODE_NAME':
-                self.settings_title.setText(value)
-            elif name == 'recognition':
-                self.recognition_combo.setCurrentText(value)
-            elif name == 'action':
-                self.actions_combo.setCurrentText(value)
-            elif name == 'enabled':
-                self.enabled_check.setChecked(value)
-            elif name == 'focus':
-                self.focus_check.setChecked(value)
-            elif name == 'inverse':
-                self.inverse_check.setChecked(value)
-            elif name == 'roi':
-                self.roi_edit.setText(str(value))
-            elif name == 'roi_offset':
-                self.roi_offset_edit.setText(str(value))
-            elif name == 'threshold':
-                self.threshold_spin.setValue(value)
-            elif name == 'expected':
-                self.expected_edit.setText(value)
-            elif name == 'template':
-                self.template_edit.setText(value)
-            elif name == 'target':
-                self.target_edit.setText(str(value))
-            elif name == 'target_offset':
-                self.target_offset_edit.setText(str(value))
-            # elif name == 'next':
-            #     self.next_edit.setText(value)
-            # elif name == 'interrupt':
-            #     self.interrupt_edit.setText(value)
-            # elif name == 'on_error':
-            #     self.on_error_edit.setText(value)
-            elif name == 'rate_limit':
-                self.rate_limit_spin.setValue(value)
-            elif name == 'timeout':
-                self.timeout_spin.setValue(value)
-            elif name == 'pre_delay':
-                self.pre_delay_spin.setValue(value)
-            elif name == 'post_delay':
-                self.post_delay_spin.setValue(value)
-            elif name == 'pre_wait_freezes':
-                self.pre_freeze_spin.setValue(value)
-            elif name == 'post_wait_freezes':
-                self.post_freeze_spin.setValue(value)
+        # 从settings更新到UI控件
+        self.settings_title.setText(settings.NODE_NAME or '')
+        self.recognition_combo.setCurrentText(settings.recognition or '')
+        self.actions_combo.setCurrentText(settings.action or '')
+        self.enabled_check.setChecked(bool(settings.enabled))
+        self.focus_check.setChecked(bool(settings.focus))
+        self.inverse_check.setChecked(bool(settings.inverse))
+        self.roi_edit.setText(str(settings.roi or ''))
+        self.roi_offset_edit.setText(str(settings.roi_offset or ''))
+        self.threshold_spin.setValue(settings.threshold or 0.7)
+        self.expected_edit.setText(settings.expected or '')
+        self.template_edit.setText(settings.template or '')
+        self.target_edit.setText(str(settings.target or ''))
+        self.target_offset_edit.setText(str(settings.target_offset or ''))
+        self.rate_limit_spin.setValue(settings.rate_limit or 1000)
+        self.timeout_spin.setValue(settings.timeout or 20000)
+        self.pre_delay_spin.setValue(settings.pre_delay or 200)
+        self.post_delay_spin.setValue(settings.post_delay or 200)
+        self.pre_freeze_spin.setValue(settings.pre_wait_freezes or 0)
+        self.post_freeze_spin.setValue(settings.post_wait_freezes or 0)
 
-        # 为settings对象添加属性监听
-        for attr in dir(self.settings):
-            if not attr.startswith('_'):  # 只监听非私有属性
-                setattr(self.settings.__class__, attr, property(
-                    lambda self, attr=attr: getattr(self, f'_{attr}', None),
-                    lambda self, value, attr=attr: (
-                        setattr(self, f'_{attr}', value),
-                        update_ui(attr)
-                    )[0]
-                ))
+        # 更新sections
+        if hasattr(settings, 'next'):
+            self.update_section('next', settings.next or ["",""])
+        if hasattr(settings, 'interrupt'):
+            self.update_section('interrupt', settings.interrupt or ["",""])
+        if hasattr(settings, 'on_error'):
+            self.update_section('on_error', settings.on_error or ["",""])
+
+    # Section相关的方法
+    def on_next_section_changed(self):
+        """当next section变化时更新settings"""
+        values = self.get_section_values('next')
+        setattr(self.settings, 'next', values)
+
+    def on_interrupt_section_changed(self):
+        """当interrupt section变化时更新settings"""
+        values = self.get_section_values('interrupt')
+        setattr(self.settings, 'interrupt', values)
+
+    def on_error_section_changed(self):
+        """当error section变化时更新settings"""
+        values = self.get_section_values('on_error')
+        setattr(self.settings, 'on_error', values)
