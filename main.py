@@ -1,4 +1,3 @@
-# from maa import Library  # 导入 maa 库 不要删除,容易发生兼容问题
 from src.ui.main_window import MainWindow
 import sys
 import asyncio

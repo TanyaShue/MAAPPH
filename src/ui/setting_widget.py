@@ -1,9 +1,8 @@
 import os
-from functools import partial
 
+from functools import partial
 from PySide2.QtCore import Signal
 from PySide2.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QLineEdit, QHBoxLayout, QScrollArea, QFrame
-
 from src.utils.app_config import AdbConfig, Config
 
 

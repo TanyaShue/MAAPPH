@@ -1,14 +1,11 @@
 from dataclasses import dataclass
 from typing import List, Optional, Union
-
-from PySide2.QtCore import QPoint
+from PySide2.QtCore import QPoint, Signal
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
                                QCheckBox, QSpinBox, QLineEdit, QTextEdit, QScrollArea,
                                QDoubleSpinBox, QFrame, QPushButton)
-
 from src.node_graph.graph_widget import MyNode
 from src.utils.maa_controller import MaaController
-
 
 @dataclass
 class TaskNode:
@@ -36,13 +33,17 @@ class TaskNode:
     post_wait_freezes: Optional[int] = None
 
 class NoteWidget(QWidget):
-
+    settings_changed = Signal()
     def __init__(self, settings: Optional[TaskNode] = None):
         super().__init__()
         self.node = None
         self.main_layout = None
         self.settings_title = None
         self.settings = settings or TaskNode()
+
+        self.next_section = [""]
+        self.interrupt_section = [""]
+        self.on_error_section = [""]
         self.init_ui()
         self.load_settings()
         self.setup_bindings()
@@ -95,6 +96,7 @@ class NoteWidget(QWidget):
 
     def save_node(self):
         # self.settings=self.get_settings()
+        self.settings.on_error=["1"]
         print(self.settings)
 
     def create_row(self, label_text, widget):
@@ -207,6 +209,7 @@ class NoteWidget(QWidget):
 
         return group
 
+
     def create_flow_group(self):
         group = QFrame()
         layout = QVBoxLayout(group)
@@ -216,68 +219,102 @@ class NoteWidget(QWidget):
         layout.addWidget(title)
 
         # Next Task Section
-        layout.addLayout(self.create_section("下一个任务:"))
+        layout.addLayout(self.create_section("下一个任务:", "next"))
         # Interrupt Task Section
-        layout.addLayout(self.create_section("中断任务:"))
+        layout.addLayout(self.create_section("中断任务:", "interrupt"))
         # Error Handling Task Section
-        layout.addLayout(self.create_section("错误处理任务:"))
+        layout.addLayout(self.create_section("错误处理任务:", "on_error"))
 
         return group
 
-    def create_section(self, label_text):
-        section_layout = QHBoxLayout()
+    def create_section(self, label_text, attribute):
+        section_layout = QVBoxLayout()
 
-        # Left label
+        # Title label
         label = QLabel(label_text)
-        label.setFixedWidth(150)
         section_layout.addWidget(label)
 
-        # Right container with scroll area and add button
-        right_container = QVBoxLayout()
-
+        # Scroll area to contain rows
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
         scroll_area.setWidget(scroll_content)
 
-        right_container.addWidget(scroll_area)
+        # Add rows based on the current section data
+        self.update_section_ui(scroll_layout, attribute)
 
-        # Add button below the scroll area
+        # Add button to add new rows
         add_button = QPushButton("添加")
-        add_button.setFixedWidth(60)
-        add_button.clicked.connect(lambda: self.add_row(scroll_layout))
-        right_container.addWidget(add_button)
+        add_button.clicked.connect(lambda: self.add_row(scroll_layout, attribute))
 
-        # Add initial two rows
-        self.add_row(scroll_layout)
-        self.add_row(scroll_layout)
+        section_layout.addWidget(scroll_area)
+        section_layout.addWidget(add_button)
 
-        section_layout.addLayout(right_container)
+        # Bind signal to refresh section UI
+        self.settings_changed.connect(lambda: self.update_section_ui(scroll_layout, attribute))
 
         return section_layout
 
-    def add_row(self, scroll_layout):
+    def add_row(self, scroll_layout, attribute, initial_value=""):
+        # Create a new row with input field and delete button
         row_widget = QWidget()
         row_layout = QHBoxLayout(row_widget)
         row_layout.setContentsMargins(0, 0, 0, 0)
 
         input_field = QLineEdit()
+        input_field.setText(initial_value)
         input_field.setPlaceholderText("输入任务名称")
+        input_field.textChanged.connect(lambda: self.update_section_data(scroll_layout, attribute))
+
         delete_button = QPushButton("删除")
-        delete_button.setFixedWidth(50)
-        delete_button.clicked.connect(lambda: self.remove_row(row_widget, scroll_layout))
+        delete_button.clicked.connect(lambda: self.remove_row(scroll_layout, row_widget, attribute))
 
         row_layout.addWidget(input_field)
         row_layout.addWidget(delete_button)
-
         scroll_layout.addWidget(row_widget)
 
-    def remove_row(self, row_widget, scroll_layout):
-        # Remove the specified row widget
+    def remove_row(self, scroll_layout, row_widget, attribute):
         scroll_layout.removeWidget(row_widget)
         row_widget.deleteLater()
-        row_widget = None
+        self.update_section_data(scroll_layout, attribute)
+
+    def update_section_data(self, scroll_layout, attribute):
+        # Collect all input values from the scroll layout
+        section_data = []
+        for i in range(scroll_layout.count()):
+            widget = scroll_layout.itemAt(i).widget()
+            if widget:
+                input_field = widget.findChild(QLineEdit)
+                if input_field:
+                    text = input_field.text().strip()
+                    section_data.append(text)
+
+        # Update section data and sync with settings
+        setattr(self, f"{attribute}_section", section_data)
+        setattr(self.settings, attribute, section_data)
+
+    def update_section_ui(self, scroll_layout, attribute):
+        # Clear the current UI
+        while scroll_layout.count():
+            widget = scroll_layout.takeAt(0).widget()
+            if widget:
+                widget.deleteLater()
+
+        # Get the latest data for this section
+        section_data = getattr(self, f"{attribute}_section", [])
+
+        # Recreate rows for each item in the section data
+        for value in section_data:
+            self.add_row(scroll_layout, attribute, value)
+
+    def update_settings(self, new_settings):
+        # Update settings and refresh UI
+        self.settings = new_settings
+        self.next_section = self.settings.next
+        self.interrupt_section = self.settings.interrupt
+        self.on_error_section = self.settings.on_error
+        self.settings_changed.emit()
 
     def create_timing_group(self):
         group = QFrame()

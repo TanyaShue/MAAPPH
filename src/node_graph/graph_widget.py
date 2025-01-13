@@ -1,12 +1,11 @@
 import json
-from time import perf_counter
 
 from PySide2.QtCore import Signal
 from Qt import QtWidgets
 from Qt.QtCore import QPropertyAnimation, QEasingCurve
 from Qt.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout,
-    QComboBox, QSizePolicy
+    QComboBox
 )
 
 from NodeGraphQt import NodeGraph, BaseNode, NodeBaseWidget

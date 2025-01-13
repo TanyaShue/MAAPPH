@@ -1,16 +1,13 @@
 import subprocess
-from typing import Optional, Dict, Any
 
-import cv2
+from typing import Optional, Dict, Any
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QImage
 from maa.controller import AdbController
 from maa.custom_recognition import CustomRecognition
-from maa.notification_handler import NotificationHandler
 from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
-import numpy as np
 from src.utils.app_config import AdbConfig
 
 

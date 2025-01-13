@@ -1,14 +1,13 @@
 import os
+
 from datetime import datetime
 from functools import partial
-
 from PySide2.QtCore import QPoint, QRect, Signal
 from PySide2.QtGui import QPixmap, Qt, QPainter, QColor, QPen
 from PySide2.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QMenu,
     QHBoxLayout, QPushButton
 )
-
 from src.utils.maa_controller import MaaController
 
 
@@ -128,7 +127,7 @@ class CoordinateLabel(QLabel):
         # Save with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filepath = f'img/screenshot_{timestamp}.png'
-        cropped.save(filepath)
+        # cropped.save(filepath)
 
         self.cropped_image = cropped  # Store as QPixmap
         self.last_screenshot_path = filepath
