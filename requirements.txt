@@ -1,0 +1,7 @@
+MaaFw==2.4.2
+numpy==1.22.4
+opencv_python==4.10.0.84
+Pygments==2.19.1
+PySide2==5.15.2.1
+qasync==0.27.1
+Qt.py==1.4.1

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from PySide2.QtCore import QPoint
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
@@ -12,29 +12,28 @@ from src.utils.maa_controller import MaaController
 
 @dataclass
 class TaskNode:
-    NODE_NAME: str = "默认节点"
-    recognition: str = "DirectHit"
-    action: str = "DoNothing"
-    enabled: bool = True
-    focus: bool = False
-    inverse: bool = False
-    roi: Optional[List[int]] = None  # [x, y, w, h]
-    roi_offset: Optional[List[int]] = None  # [x, y, w, h]
-    threshold: float = 0.7
-    expected: str = ""
-    target: str = ""
-    template: str = ""
+    NODE_NAME: Optional[str] = None
+    recognition: Optional[str] = None
+    action: Optional[str] = None
+    enabled: Optional[bool] = None
+    focus: Optional[bool] = None
+    inverse: Optional[bool] = None
+    roi: Optional[List[int]] = None
+    roi_offset: Optional[List[int]] = None
+    threshold: Optional[float] = None
+    expected: Optional[str] = None
+    target: Optional[Union[str, List[int]]] = None
+    template: Optional[Union[str, List[str]]] = None
     target_offset: Optional[List[int]] = None
     next: Optional[List[str]] = None
     interrupt: Optional[List[str]] = None
     on_error: Optional[List[str]] = None
-    rate_limit: int = 1000
-    timeout: int = 20000
-    pre_delay: int = 200
-    post_delay: int = 200
-    pre_wait_freezes: int = 0
-    post_wait_freezes: int = 0
-
+    rate_limit: Optional[int] = None
+    timeout: Optional[int] = None
+    pre_delay: Optional[int] = None
+    post_delay: Optional[int] = None
+    pre_wait_freezes: Optional[int] = None
+    post_wait_freezes: Optional[int] = None
 
 class NoteWidget(QWidget):
 
@@ -46,6 +45,7 @@ class NoteWidget(QWidget):
         self.settings = settings or TaskNode()
         self.init_ui()
         self.load_settings()
+        self.setup_bindings()
         self.maa_controller = MaaController()
 
     def init_ui(self):
@@ -74,7 +74,7 @@ class NoteWidget(QWidget):
             ("基础配置", self.create_basic_group),
             ("算法配置", self.create_algo_group),
             ("目标配置", self.create_target_group),
-            ("动作配置", self.create_action_group),
+            # ("动作配置", self.create_action_group),
             ("任务流配置", self.create_flow_group),
             ("时间配置", self.create_timing_group)
         ]
@@ -94,7 +94,7 @@ class NoteWidget(QWidget):
         self.main_layout=setting_layout
 
     def save_node(self):
-        self.settings=self.get_settings()
+        # self.settings=self.get_settings()
         print(self.settings)
 
     def create_row(self, label_text, widget):
@@ -113,14 +113,21 @@ class NoteWidget(QWidget):
         title.setStyleSheet("font-weight: bold;")
         layout.addWidget(title)
 
+        self.target_edit = QLineEdit()
+        self.target_offset_edit = QLineEdit()
         self.expected_edit = QLineEdit()
-        self.expected_offset_edit = QLineEdit()
+        self.template_edit = QLineEdit()
 
+
+        self.target_edit.setPlaceholderText("true/任务名/[x,y,w,h]")
+        self.target_offset_edit.setPlaceholderText("[x, y, w, h]")
         self.expected_edit.setPlaceholderText("匹配字符")
-        self.expected_offset_edit.setPlaceholderText("图片名称")
+        self.template_edit.setPlaceholderText("图片名称")
 
+        layout.addLayout(self.create_row("目标位置:", self.target_edit))
+        layout.addLayout(self.create_row("目标偏移:", self.target_offset_edit))
         layout.addLayout(self.create_row("expected:", self.expected_edit))
-        layout.addLayout(self.create_row("template:", self.expected_offset_edit))
+        layout.addLayout(self.create_row("template:", self.template_edit))
 
         return group
 
@@ -208,22 +215,69 @@ class NoteWidget(QWidget):
         title.setStyleSheet("font-weight: bold;")
         layout.addWidget(title)
 
-        self.next_edit = QTextEdit()
-        self.interrupt_edit = QTextEdit()
-        self.on_error_edit = QTextEdit()
-
-        for edit in [self.next_edit, self.interrupt_edit, self.on_error_edit]:
-            edit.setMaximumHeight(80)
-
-        self.next_edit.setPlaceholderText("输入任务名称，每行一个")
-        self.interrupt_edit.setPlaceholderText("输入中断任务名称，每行一个")
-        self.on_error_edit.setPlaceholderText("输入错误处理任务名称，每行一个")
-
-        layout.addLayout(self.create_row("下一个任务:", self.next_edit))
-        layout.addLayout(self.create_row("中断任务:", self.interrupt_edit))
-        layout.addLayout(self.create_row("错误处理任务:", self.on_error_edit))
+        # Next Task Section
+        layout.addLayout(self.create_section("下一个任务:"))
+        # Interrupt Task Section
+        layout.addLayout(self.create_section("中断任务:"))
+        # Error Handling Task Section
+        layout.addLayout(self.create_section("错误处理任务:"))
 
         return group
+
+    def create_section(self, label_text):
+        section_layout = QHBoxLayout()
+
+        # Left label
+        label = QLabel(label_text)
+        label.setFixedWidth(150)
+        section_layout.addWidget(label)
+
+        # Right container with scroll area and add button
+        right_container = QVBoxLayout()
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_area.setWidget(scroll_content)
+
+        right_container.addWidget(scroll_area)
+
+        # Add button below the scroll area
+        add_button = QPushButton("添加")
+        add_button.setFixedWidth(60)
+        add_button.clicked.connect(lambda: self.add_row(scroll_layout))
+        right_container.addWidget(add_button)
+
+        # Add initial two rows
+        self.add_row(scroll_layout)
+        self.add_row(scroll_layout)
+
+        section_layout.addLayout(right_container)
+
+        return section_layout
+
+    def add_row(self, scroll_layout):
+        row_widget = QWidget()
+        row_layout = QHBoxLayout(row_widget)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+
+        input_field = QLineEdit()
+        input_field.setPlaceholderText("输入任务名称")
+        delete_button = QPushButton("删除")
+        delete_button.setFixedWidth(50)
+        delete_button.clicked.connect(lambda: self.remove_row(row_widget, scroll_layout))
+
+        row_layout.addWidget(input_field)
+        row_layout.addWidget(delete_button)
+
+        scroll_layout.addWidget(row_widget)
+
+    def remove_row(self, row_widget, scroll_layout):
+        # Remove the specified row widget
+        scroll_layout.removeWidget(row_widget)
+        row_widget.deleteLater()
+        row_widget = None
 
     def create_timing_group(self):
         group = QFrame()
@@ -270,95 +324,58 @@ class NoteWidget(QWidget):
 
     def load_settings(self):
         """从 TaskNode 加载设置到 UI"""
-        self.settings_title.setText(self.settings.NODE_NAME)
+        if self.settings.NODE_NAME is not None:
+            self.settings_title.setText(self.settings.NODE_NAME)
+
         # 基础设置
-        self.recognition_combo.setCurrentText(self.settings.recognition)
-        self.actions_combo.setCurrentText(self.settings.action)
-        self.enabled_check.setChecked(self.settings.enabled)
-        self.focus_check.setChecked(self.settings.focus)
-        self.inverse_check.setChecked(self.settings.inverse)
+        if self.settings.recognition is not None:
+            self.recognition_combo.setCurrentText(self.settings.recognition)
+        if self.settings.action is not None:
+            self.actions_combo.setCurrentText(self.settings.action)
+        if self.settings.enabled is not None:
+            self.enabled_check.setChecked(self.settings.enabled)
+        if self.settings.focus is not None:
+            self.focus_check.setChecked(self.settings.focus)
+        if self.settings.inverse is not None:
+            self.inverse_check.setChecked(self.settings.inverse)
 
         # 算法设置
-        if self.settings.roi:
+        if self.settings.roi is not None:
             self.roi_edit.setText(str(self.settings.roi))
-        if self.settings.roi_offset:
+        if self.settings.roi_offset is not None:
             self.roi_offset_edit.setText(str(self.settings.roi_offset))
-        self.threshold_spin.setValue(self.settings.threshold)
+        if self.settings.threshold is not None:
+            self.threshold_spin.setValue(self.settings.threshold)
 
         # 目标设置
-        if self.settings.expected:
-            self.expected_edit.setText(str(self.settings.expected))
-        if self.settings.target:
+        if self.settings.expected is not None:
+            self.expected_edit.setText(self.settings.expected)
+        if self.settings.target is not None:
             self.target_edit.setText(str(self.settings.target))
-        if self.settings.target_offset:
+        if self.settings.target_offset is not None:
             self.target_offset_edit.setText(str(self.settings.target_offset))
 
-        # 动作设置
-        # self.target_edit.setText(str(self.settings))
-        # if self.settings_offset:
-        #     self.target_offset_edit.setText(str(self.settings_offset))
-
         # 任务流设置
-        if self.settings.next:
-            self.next_edit.setText('\n'.join(self.settings.next))
-        if self.settings.interrupt:
-            self.interrupt_edit.setText('\n'.join(self.settings.interrupt))
-        if self.settings.on_error:
-            self.on_error_edit.setText('\n'.join(self.settings.on_error))
+        # if self.settings.next is not None:
+        #     self.next_edit.setText(str(self.settings.next))
+        # if self.settings.interrupt is not None:
+        #     self.interrupt_edit.setText(str(self.settings.interrupt))
+        # if self.settings.on_error is not None:
+        #     self.on_error_edit.setText(str(self.settings.on_error))
 
         # 时间设置
-        self.rate_limit_spin.setValue(self.settings.rate_limit)
-        self.timeout_spin.setValue(self.settings.timeout)
-        self.pre_delay_spin.setValue(self.settings.pre_delay)
-        self.post_delay_spin.setValue(self.settings.post_delay)
-        self.pre_freeze_spin.setValue(self.settings.pre_wait_freezes)
-        self.post_freeze_spin.setValue(self.settings.post_wait_freezes)
-
-    def get_settings(self) -> TaskNode:
-        """从 UI 获取设置并返回 TaskNode 对象"""
-        settings = TaskNode()
-
-        settings.recognition = self.recognition_combo.currentText()
-        settings.action = self.actions_combo.currentText()
-        settings.enabled = self.enabled_check.isChecked()
-        settings.focus = self.focus_check.isChecked()
-        settings.inverse = self.inverse_check.isChecked()
-
-        # 算法设置
-        roi_text = self.roi_edit.text()
-        if roi_text:
-            settings.roi = eval(roi_text)
-        roi_offset_text = self.roi_offset_edit.text()
-        if roi_offset_text:
-            settings.roi_offset = eval(roi_offset_text)
-        settings.threshold = self.threshold_spin.value()
-        # 动作设置
-        settings.target = self.target_edit.text()
-        target_offset_text = self.target_offset_edit.text()
-        if target_offset_text:
-            settings.action.target_offset = eval(target_offset_text)
-        # 任务流设置
-        next_tasks = self.next_edit.toPlainText().strip()
-        if next_tasks:
-            settings.next = next_tasks.split('\n')
-
-        interrupt_tasks = self.interrupt_edit.toPlainText().strip()
-        if interrupt_tasks:
-            settings.interrupt = interrupt_tasks.split('\n')
-
-        error_tasks = self.on_error_edit.toPlainText().strip()
-        if error_tasks:
-            settings.on_error = error_tasks.split('\n')
-
-        # 时间设置
-        settings.rate_limit = self.rate_limit_spin.value()
-        settings.timeout = self.timeout_spin.value()
-        settings.pre_delay = self.pre_delay_spin.value()
-        settings.post_delay = self.post_delay_spin.value()
-        settings.pre_wait_freezes = self.pre_freeze_spin.value()
-        settings.post_wait_freezes = self.post_freeze_spin.value()
-
-        return settings
+        if self.settings.rate_limit is not None:
+            self.rate_limit_spin.setValue(self.settings.rate_limit)
+        if self.settings.timeout is not None:
+            self.timeout_spin.setValue(self.settings.timeout)
+        if self.settings.pre_delay is not None:
+            self.pre_delay_spin.setValue(self.settings.pre_delay)
+        if self.settings.post_delay is not None:
+            self.post_delay_spin.setValue(self.settings.post_delay)
+        if self.settings.pre_wait_freezes is not None:
+            self.pre_freeze_spin.setValue(self.settings.pre_wait_freezes)
+        if self.settings.post_wait_freezes is not None:
+            self.post_freeze_spin.setValue(self.settings.post_wait_freezes)
 
     def update_roi_from_selection(self, start_pos: QPoint, end_pos: QPoint):
         """根据选择更新ROI设置"""
@@ -369,10 +386,6 @@ class NoteWidget(QWidget):
             height = abs(end_pos.y() - start_pos.y())
 
             # 更新ROI输入框
-            roi_text = f"[{x}, {y}, {width}, {height}]"
-            self.roi_edit.setText(roi_text)
-
-            # 更新settings对象
             self.settings.roi = [x, y, width, height]
 
     def update_target_from_selection(self, start_pos: QPoint, end_pos: QPoint):
@@ -383,9 +396,9 @@ class NoteWidget(QWidget):
             width = abs(end_pos.x() - start_pos.x())
             height = abs(end_pos.y() - start_pos.y())
 
-            # 更新Target输入框
-            target_text = f"[{x}, {y}, {width}, {height}]"
-            self.target_edit.setText(target_text)
+            # # 更新Target输入框
+            # target_text = f"[{x}, {y}, {width}, {height}]"
+            # self.target_edit.setText(target_text)
 
             # 更新settings对象
             self.settings.target = [x, y, width, height]
@@ -405,12 +418,14 @@ class NoteWidget(QWidget):
                                                                             "expected": ".*",
                                                                             "roi": [x, y, width, height]}}).wait().get()
 
-                print(results.nodes[0].recognition.best_result)
-                self.expected_edit.setText(results.nodes[0].recognition.best_result.text)
+                self.settings.expected = results.nodes[0].recognition.best_result.text
             except Exception :
                 self.expected_edit.setText("")
 
                 self.expected_edit.setPlaceholderText("识别失败")
+
+    def update_screenshot_path(self, path):
+        self.settings.template = path
 
     def load_settings_from_node(self, node: MyNode):
         """Load settings from a MyNode instance's note_data attribute."""
@@ -449,15 +464,16 @@ class NoteWidget(QWidget):
             self.settings.threshold = note_data.get('threshold', self.settings.threshold)
 
             self.settings.expected = note_data.get('expected', self.settings.expected)
+            self.settings.template = note_data.get('template', self.settings.template)
             self.settings.target = note_data.get('target', self.settings.target)
             self.settings.target_offset = note_data.get('target_offset', self.settings.target_offset)
 
             self.settings.target = note_data.get('custom_action', note_data.get('target', self.settings.target))
             self.settings.target_offset = note_data.get('target_offset', self.settings.target_offset)
 
-            self.settings.next = note_data.get('next', self.settings.next)
-            self.settings.interrupt = note_data.get('interrupt', self.settings.interrupt)
-            self.settings.on_error = note_data.get('on_error', self.settings.on_error)
+            # self.settings.next = note_data.get('next', self.settings.next)
+            # self.settings.interrupt = note_data.get('interrupt', self.settings.interrupt)
+            # self.settings.on_error = note_data.get('on_error', self.settings.on_error)
 
             self.settings.rate_limit = note_data.get('rate_limit', self.settings.rate_limit)
             self.settings.timeout = note_data.get('timeout', self.settings.timeout)
@@ -470,4 +486,142 @@ class NoteWidget(QWidget):
         # Update UI or other components
         # 4. 重新初始化UI并加载设置
         self.init_ui()
+        self.setup_bindings()
         self.load_settings()
+
+    def setup_bindings(self):
+        """设置 UI 控件与 settings 的双向绑定"""
+
+        # 基础设置绑定
+        self.settings_title.textChanged.connect(
+            lambda text: setattr(self.settings, 'NODE_NAME', text))
+
+        self.recognition_combo.currentTextChanged.connect(
+            lambda text: setattr(self.settings, 'recognition', text))
+
+        self.actions_combo.currentTextChanged.connect(
+            lambda text: setattr(self.settings, 'action', text))
+
+        self.enabled_check.stateChanged.connect(
+            lambda state: setattr(self.settings, 'enabled', bool(state)))
+
+        self.focus_check.stateChanged.connect(
+            lambda state: setattr(self.settings, 'focus', bool(state)))
+
+        self.inverse_check.stateChanged.connect(
+            lambda state: setattr(self.settings, 'inverse', bool(state)))
+
+        # 算法设置绑定
+        self.roi_edit.textChanged.connect(
+            lambda text: setattr(self.settings, 'roi', text))
+
+        self.roi_offset_edit.textChanged.connect(
+            lambda text: setattr(self.settings, 'roi_offset', text))
+
+        self.threshold_spin.valueChanged.connect(
+            lambda value: setattr(self.settings, 'threshold', value))
+
+        # 目标设置绑定
+        self.expected_edit.textChanged.connect(
+            lambda text: setattr(self.settings, 'expected', text))
+
+        self.target_edit.textChanged.connect(
+            lambda text: setattr(self.settings, 'target', text))
+
+        self.target_offset_edit.textChanged.connect(
+            lambda text: setattr(self.settings, 'target_offset', text))
+
+        self.template_edit.textChanged.connect(
+            lambda text: setattr(self.settings, 'template', text))
+
+        # 任务流设置绑定
+        # self.next_edit.textChanged.connect(
+        #     lambda text: setattr(self.settings, 'next', text))
+        #
+        # self.interrupt_edit.textChanged.connect(
+        #     lambda text: setattr(self.settings, 'interrupt', text))
+        #
+        # self.on_error_edit.textChanged.connect(
+        #     lambda text: setattr(self.settings, 'on_error', text))
+
+        # 时间设置绑定
+        self.rate_limit_spin.valueChanged.connect(
+            lambda value: setattr(self.settings, 'rate_limit', value))
+
+        self.timeout_spin.valueChanged.connect(
+            lambda value: setattr(self.settings, 'timeout', value))
+
+        self.pre_delay_spin.valueChanged.connect(
+            lambda value: setattr(self.settings, 'pre_delay', value))
+
+        self.post_delay_spin.valueChanged.connect(
+            lambda value: setattr(self.settings, 'post_delay', value))
+
+        self.pre_freeze_spin.valueChanged.connect(
+            lambda value: setattr(self.settings, 'pre_wait_freezes', value))
+
+        self.post_freeze_spin.valueChanged.connect(
+            lambda value: setattr(self.settings, 'post_wait_freezes', value))
+
+        # 设置值变化时更新UI的绑定
+        def update_ui(name):
+            """当settings中的值改变时更新对应的UI控件"""
+            value = getattr(self.settings, name, None)
+            if value is None:
+                return
+
+            if name == 'NODE_NAME':
+                self.settings_title.setText(value)
+            elif name == 'recognition':
+                self.recognition_combo.setCurrentText(value)
+            elif name == 'action':
+                self.actions_combo.setCurrentText(value)
+            elif name == 'enabled':
+                self.enabled_check.setChecked(value)
+            elif name == 'focus':
+                self.focus_check.setChecked(value)
+            elif name == 'inverse':
+                self.inverse_check.setChecked(value)
+            elif name == 'roi':
+                self.roi_edit.setText(str(value))
+            elif name == 'roi_offset':
+                self.roi_offset_edit.setText(str(value))
+            elif name == 'threshold':
+                self.threshold_spin.setValue(value)
+            elif name == 'expected':
+                self.expected_edit.setText(value)
+            elif name == 'template':
+                self.template_edit.setText(value)
+            elif name == 'target':
+                self.target_edit.setText(str(value))
+            elif name == 'target_offset':
+                self.target_offset_edit.setText(str(value))
+            # elif name == 'next':
+            #     self.next_edit.setText(value)
+            # elif name == 'interrupt':
+            #     self.interrupt_edit.setText(value)
+            # elif name == 'on_error':
+            #     self.on_error_edit.setText(value)
+            elif name == 'rate_limit':
+                self.rate_limit_spin.setValue(value)
+            elif name == 'timeout':
+                self.timeout_spin.setValue(value)
+            elif name == 'pre_delay':
+                self.pre_delay_spin.setValue(value)
+            elif name == 'post_delay':
+                self.post_delay_spin.setValue(value)
+            elif name == 'pre_wait_freezes':
+                self.pre_freeze_spin.setValue(value)
+            elif name == 'post_wait_freezes':
+                self.post_freeze_spin.setValue(value)
+
+        # 为settings对象添加属性监听
+        for attr in dir(self.settings):
+            if not attr.startswith('_'):  # 只监听非私有属性
+                setattr(self.settings.__class__, attr, property(
+                    lambda self, attr=attr: getattr(self, f'_{attr}', None),
+                    lambda self, value, attr=attr: (
+                        setattr(self, f'_{attr}', value),
+                        update_ui(attr)
+                    )[0]
+                ))

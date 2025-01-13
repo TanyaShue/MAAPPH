@@ -1,5 +1,4 @@
 import asyncio
-import os
 
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import (
@@ -10,9 +9,8 @@ from src.node_graph.graph_widget import TaskNodeGraph
 from src.ui.data_display import DataDisplayWidget
 from src.ui.setting_widget import SettingWidget
 from src.ui.note_widget import NoteWidget
-from src.utils.app_config import Config, AdbConfig
+from src.utils.app_config import AdbConfig
 from src.utils.maa_controller import MaaController
-from qasync import QEventLoop  # 确保安装了 qasync: pip install qasync
 
 
 class MainWindow(QMainWindow):
@@ -59,14 +57,6 @@ class MainWindow(QMainWindow):
         horizontal_splitter.setStretchFactor(1, 2)
         horizontal_splitter.setStretchFactor(2, 4)
 
-        # # 设置初始大小
-        # total_width = 1200
-        # horizontal_splitter.setSizes([
-        #     int(total_width * 0.4),
-        #     int(total_width * 0.2),
-        #     int(total_width * 0.4)
-        # ])
-
         # 下半部分节点图
         node_graph = TaskNodeGraph()
 
@@ -89,6 +79,7 @@ class MainWindow(QMainWindow):
         setting_widget.connect_resource_signal.connect(self.initialize_resource)
         setting_widget.open_pipeline_in_node_graph_signal.connect(node_graph.create_nodes_from_json)
         node_graph.note_select.connect(note_widget.load_settings_from_node)
+        data_display.screen_label.update_screenshot_path.connect(note_widget.update_screenshot_path)
 
 
     async def async_initialize_controller(self, adb_config: AdbConfig, user_path: str = "./"):
@@ -103,6 +94,7 @@ class MainWindow(QMainWindow):
         if successes:
             print("MAA初始化成功")
             self.data_display.refresh_screen()
+
     async def async_initialize_resource(self,resource_path: str):
         successes = await asyncio.to_thread(
             self.MaaController.connect_resource,

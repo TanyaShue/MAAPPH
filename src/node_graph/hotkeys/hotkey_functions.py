@@ -7,7 +7,7 @@ def add_base_node(graph):
     """
     Add a base node to the node graph.
     """
-    graph.create_node('io.github.jchanvfx.MyNode', name="task_name")
+    graph.create_node('io.github.jchanvfx.MyNode', name="step_")
     # graph.add_node('BaseNode')
 def reset_pos(graph):
     """

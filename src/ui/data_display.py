@@ -16,6 +16,7 @@ class CoordinateLabel(QLabel):
     roi_selected = Signal(QPoint, QPoint)
     target_selected = Signal(QPoint, QPoint)
     recognition_from_roi_signal = Signal(QPoint, QPoint)
+    update_screenshot_path = Signal(str)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.start_pos = None
@@ -31,7 +32,7 @@ class CoordinateLabel(QLabel):
         # 创建上下文菜单项
         self.set_roi_action = self.context_menu.addAction("设置为ROI")
         self.set_target_action = self.context_menu.addAction("设置为Target")
-        self.screenshot_action = self.context_menu.addAction("截图")
+        self.screenshot_action = self.context_menu.addAction("设置为template(截图并保存为template)")
         self.recognition_action = self.context_menu.addAction("识别为expected")
 
         # 连接菜单动作到相应的处理函数
@@ -132,6 +133,7 @@ class CoordinateLabel(QLabel):
         self.cropped_image = cropped  # Store as QPixmap
         self.last_screenshot_path = filepath
         self.update()
+        self.update_screenshot_path.emit(filepath)
         return filepath
 
     def paintEvent(self, event):
