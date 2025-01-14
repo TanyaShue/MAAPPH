@@ -19,8 +19,8 @@ class NoteSettingWidget(QWidget):
         self.input_fields = {}  # Store input fields for each section
         self.settings = settings or TaskNode()
         self.init_ui()
-        self.load_settings()
         self.setup_bindings()
+        self.update_ui_from_settings(self.settings)
         self.maa_controller = MaaController()
         self.settings.signals.property_changed.connect(self.update_settings_when_property_changed)
 
@@ -72,57 +72,6 @@ class NoteSettingWidget(QWidget):
     def update_settings_when_property_changed(self, field: str, value: object):
         self.update_ui_from_settings(self.settings)
 
-    # def update_settings_when_property_changed(self, field: str, value: object):
-    #     print(f"Updated field '{field}' to value {value}")
-    #     # value = getattr(self.settings, field, None)
-    #     if value is None:
-    #         return
-    #
-    #     if field == 'NODE_NAME':
-    #         self.settings_title.setText(value)
-    #     elif field == 'recognition':
-    #         self.recognition_combo.setCurrentText(value)
-    #     elif field == 'action':
-    #         self.actions_combo.setCurrentText(value)
-    #     elif field == 'enabled':
-    #         self.enabled_check.setChecked(value)
-    #     elif field == 'focus':
-    #         self.focus_check.setChecked(value)
-    #     elif field == 'inverse':
-    #         self.inverse_check.setChecked(value)
-    #     elif field == 'roi':
-    #         self.roi_edit.setText(str(value))
-    #     elif field == 'roi_offset':
-    #         self.roi_offset_edit.setText(str(value))
-    #     elif field == 'threshold':
-    #         self.threshold_spin.setValue(value)
-    #     elif field == 'expected':
-    #         self.expected_edit.setText(value)
-    #     elif field == 'template':
-    #         self.template_edit.setText(value)
-    #     elif field == 'target':
-    #         self.target_edit.setText(str(value))
-    #     elif field == 'target_offset':
-    #         self.target_offset_edit.setText(str(value))
-    #     elif field == 'next':
-    #         self.update_section("next", value)
-    #     elif field == 'interrupt':
-    #         self.update_section("interrupt", value)
-    #     elif field == 'on_error':
-    #         self.update_section("on_error", value)
-    #     elif field == 'rate_limit':
-    #         self.rate_limit_spin.setValue(value)
-    #     elif field == 'timeout':
-    #         self.timeout_spin.setValue(value)
-    #     elif field == 'pre_delay':
-    #         self.pre_delay_spin.setValue(value)
-    #     elif field == 'post_delay':
-    #         self.post_delay_spin.setValue(value)
-    #     elif field == 'pre_wait_freezes':
-    #         self.pre_freeze_spin.setValue(value)
-    #     elif field == 'post_wait_freezes':
-    #         self.post_freeze_spin.setValue(value)
-    #     # self.settings[field] = value
     def save_node(self):
         print(self.settings)
         # self.settings.roi = ["a", "b", "c", "d"]
@@ -421,61 +370,6 @@ class NoteSettingWidget(QWidget):
             layout.addLayout(self.create_row(label, widget))
 
         return group
-
-    def load_settings(self):
-        """从 TaskNode 加载设置到 UI"""
-        if self.settings.NODE_NAME is not None:
-            self.settings_title.setText(self.settings.NODE_NAME)
-
-        # 基础设置
-        if self.settings.recognition is not None:
-            self.recognition_combo.setCurrentText(self.settings.recognition)
-        if self.settings.action is not None:
-            self.actions_combo.setCurrentText(self.settings.action)
-        if self.settings.enabled is not None:
-            self.enabled_check.setChecked(self.settings.enabled)
-        if self.settings.focus is not None:
-            self.focus_check.setChecked(self.settings.focus)
-        if self.settings.inverse is not None:
-            self.inverse_check.setChecked(self.settings.inverse)
-
-        # 算法设置
-        if self.settings.roi is not None:
-            self.roi_edit.setText(str(self.settings.roi))
-        if self.settings.roi_offset is not None:
-            self.roi_offset_edit.setText(str(self.settings.roi_offset))
-        if self.settings.threshold is not None:
-            self.threshold_spin.setValue(self.settings.threshold)
-
-        # 目标设置
-        if self.settings.expected is not None:
-            self.expected_edit.setText(self.settings.expected)
-        if self.settings.target is not None:
-            self.target_edit.setText(str(self.settings.target))
-        if self.settings.target_offset is not None:
-            self.target_offset_edit.setText(str(self.settings.target_offset))
-
-        # 任务流设置
-        # if self.settings.next is not None:
-        #     self.next_edit.setText(str(self.settings.next))
-        # if self.settings.interrupt is not None:
-        #     self.interrupt_edit.setText(str(self.settings.interrupt))
-        # if self.settings.on_error is not None:
-        #     self.on_error_edit.setText(str(self.settings.on_error))
-
-        # 时间设置
-        if self.settings.rate_limit is not None:
-            self.rate_limit_spin.setValue(self.settings.rate_limit)
-        if self.settings.timeout is not None:
-            self.timeout_spin.setValue(self.settings.timeout)
-        if self.settings.pre_delay is not None:
-            self.pre_delay_spin.setValue(self.settings.pre_delay)
-        if self.settings.post_delay is not None:
-            self.post_delay_spin.setValue(self.settings.post_delay)
-        if self.settings.pre_wait_freezes is not None:
-            self.pre_freeze_spin.setValue(self.settings.pre_wait_freezes)
-        if self.settings.post_wait_freezes is not None:
-            self.post_freeze_spin.setValue(self.settings.post_wait_freezes)
 
     def load_settings_from_node(self, node: MyNode):
         """Load settings from a MyNode instance's note_data attribute."""
