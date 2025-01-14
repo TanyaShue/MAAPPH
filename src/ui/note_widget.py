@@ -17,7 +17,7 @@ class NoteWidget(QWidget):
         self.settings_title = None
         self.sections = {}  # Store section layouts for easy access
         self.input_fields = {}  # Store input fields for each section
-        self.settings =  TaskNode()
+        self.settings = settings or TaskNode()
         self.init_ui()
         self.load_settings()
         self.setup_bindings()
@@ -463,53 +463,6 @@ class NoteWidget(QWidget):
         if self.settings.post_wait_freezes is not None:
             self.post_freeze_spin.setValue(self.settings.post_wait_freezes)
 
-    def update_roi_from_selection(self, start_pos: QPoint, end_pos: QPoint):
-
-        """根据选择更新ROI设置"""
-        if start_pos and end_pos:
-            x = min(start_pos.x(), end_pos.x())
-            y = min(start_pos.y(), end_pos.y())
-            width = abs(end_pos.x() - start_pos.x())
-            height = abs(end_pos.y() - start_pos.y())
-
-            # 更新ROI输入框
-            self.settings.roi = [x, y, width, height]
-
-    def update_target_from_selection(self, start_pos: QPoint, end_pos: QPoint):
-        """根据选择更新Target设置"""
-        if start_pos and end_pos:
-            x = min(start_pos.x(), end_pos.x())
-            y = min(start_pos.y(), end_pos.y())
-            width = abs(end_pos.x() - start_pos.x())
-            height = abs(end_pos.y() - start_pos.y())
-
-            # 更新settings对象
-            self.settings.target = [x, y, width, height]
-
-    def update_expected_from_recognition(self, start_pos: QPoint, end_pos: QPoint):
-        """根据识别结果更新Expected设置"""
-        if start_pos and end_pos:
-            x = min(start_pos.x(), end_pos.x())
-            y = min(start_pos.y(), end_pos.y())
-            width = abs(end_pos.x() - start_pos.x())
-            height = abs(end_pos.y() - start_pos.y())
-
-            # 更新Expected输入框
-            try:
-                results = self.maa_controller.tasker.post_pipeline("ocr",{
-                                                                    "ocr": {"timeout": 1000, "recognition": "OCR",
-                                                                            "expected": ".*",
-                                                                            "roi": [x, y, width, height]}}).wait().get()
-
-                self.settings.expected = results.nodes[0].recognition.best_result.text
-            except Exception :
-                self.expected_edit.setText("")
-
-                self.expected_edit.setPlaceholderText("识别失败")
-
-    def update_screenshot_path(self, path):
-        self.settings.template = path
-
     def load_settings_from_node(self, node: MyNode):
         """Load settings from a MyNode instance's note_data attribute."""
         # if not hasattr(node, 'note_data') or not isinstance(node.note_data, dict):
@@ -647,3 +600,52 @@ class NoteWidget(QWidget):
         """当error section变化时更新settings"""
         values = self.get_section_values('on_error')
         setattr(self.settings, 'on_error', values)
+
+    def update_roi_from_selection(self, start_pos: QPoint, end_pos: QPoint):
+
+        """根据选择更新ROI设置"""
+        if start_pos and end_pos:
+            x = min(start_pos.x(), end_pos.x())
+            y = min(start_pos.y(), end_pos.y())
+            width = abs(end_pos.x() - start_pos.x())
+            height = abs(end_pos.y() - start_pos.y())
+
+            # 更新ROI输入框
+            self.settings.roi = [x, y, width, height]
+
+    def update_target_from_selection(self, start_pos: QPoint, end_pos: QPoint):
+        """根据选择更新Target设置"""
+        if start_pos and end_pos:
+            x = min(start_pos.x(), end_pos.x())
+            y = min(start_pos.y(), end_pos.y())
+            width = abs(end_pos.x() - start_pos.x())
+            height = abs(end_pos.y() - start_pos.y())
+
+            # 更新settings对象
+            self.settings.action="Click"
+            self.settings.target = [x, y, width, height]
+
+    def update_expected_from_recognition(self, start_pos: QPoint, end_pos: QPoint):
+        """根据识别结果更新Expected设置"""
+        if start_pos and end_pos:
+            x = min(start_pos.x(), end_pos.x())
+            y = min(start_pos.y(), end_pos.y())
+            width = abs(end_pos.x() - start_pos.x())
+            height = abs(end_pos.y() - start_pos.y())
+
+            # 更新Expected输入框
+            try:
+                results = self.maa_controller.tasker.post_pipeline("ocr",{
+                                                                    "ocr": {"timeout": 1000, "recognition": "OCR",
+                                                                            "expected": ".*",
+                                                                            "roi": [x, y, width, height]}}).wait().get()
+                self.settings.expected = results.nodes[0].recognition.best_result.text
+                self.settings.recognition = "OCR"
+            except Exception :
+                self.expected_edit.setText("")
+
+                self.expected_edit.setPlaceholderText("识别失败")
+
+    def update_screenshot_path(self, path):
+        self.settings.recognition="FeatureMatch"
+        self.settings.template = path
