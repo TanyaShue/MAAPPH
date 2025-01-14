@@ -127,7 +127,7 @@ class CoordinateLabel(QLabel):
         # Save with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filepath = f'img/screenshot_{timestamp}.png'
-        # cropped.save(filepath)
+        cropped.save(filepath)
 
         self.cropped_image = cropped  # Store as QPixmap
         self.last_screenshot_path = filepath

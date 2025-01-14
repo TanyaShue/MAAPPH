@@ -1,6 +1,8 @@
 import json
 
-from PySide2.QtCore import Signal
+from PySide2.QtCore import Signal, Qt
+from PySide2.QtGui import QPixmap
+from PySide2.QtWidgets import QSizePolicy
 from Qt import QtWidgets
 from Qt.QtCore import QPropertyAnimation, QEasingCurve
 from Qt.QtWidgets import (
@@ -33,6 +35,7 @@ class SmoothCollapsiblePanel(QWidget):
         self.header = QWidget()
         header_layout = QHBoxLayout(self.header)
         header_layout.setContentsMargins(10, 10, 10, 10)
+
         # Title label
         self.title_label = QLabel(title)
         self.title_label.setStyleSheet("""
@@ -83,9 +86,8 @@ class SmoothCollapsiblePanel(QWidget):
         # Initial state
         self.is_expanded = True
         self.header_height = self.header.sizeHint().height()
-        self.content_widget.setMaximumHeight(200)  # Default content height
+        # self.content_widget.setMaximumHeight(200)  # Default content height
         self.setMaximumHeight(self.header_height + 200)
-        # self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
     def add_content(self, widget):
         """Add content to the panel."""
@@ -111,7 +113,7 @@ class SmoothCollapsiblePanel(QWidget):
             self.panel_height_animation.setEndValue(self.header_height + 200)
 
             self.toggle_button.setText("\u25bc")  # Down arrow
-        # Update the main window size
+
         self.content_height_animation.valueChanged.connect(self.update_parent_size)
         self.panel_height_animation.valueChanged.connect(self.update_parent_size)
         self.content_height_animation.start()
@@ -122,6 +124,7 @@ class SmoothCollapsiblePanel(QWidget):
         """Notify the parent window to adjust size."""
         if self.parent():
             self.parent().adjustSize()
+
 
 class CustomWidget(QWidget):
     def __init__(self):
@@ -134,92 +137,59 @@ class CustomWidget(QWidget):
 
         # 使用垂直布局
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)  # 添加边距
-        layout.setSpacing(10)  # 设置面板间距
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
-        # 第一个面板：识别方法
-        panel1 = SmoothCollapsiblePanel("Recognition Settings")
-        recognition_layout = QHBoxLayout()
-        recognition_label = QLabel("Recognition Method:")
-        recognition_combo = QComboBox()
-        recognition_combo.addItems([
-            "DirectHit", "TemplateMatch", "FeatureMatch",
-            "ColorMatch", "OCR", "NeuralNetworkClassify",
-            "NeuralNetworkDetect", "Custom"
-        ])
+        # 简略信息面板（默认展开）
+        self.brief_panel = SmoothCollapsiblePanel("Brief Information")
+        self.brief_content = QWidget()
+        self.brief_layout = QVBoxLayout(self.brief_content)
 
-        # 调整样式
-        recognition_label.setStyleSheet("font-weight: bold;")
+        # 创建图片标签
+        self.image_label = QLabel()
+        self.image_label.setMinimumSize(200, 150)  # 设置最小尺寸
+        self.image_label.setScaledContents(True)  # 允许图片缩放
+        self.image_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.image_label.setStyleSheet("background-color: #f5f5f5;")
 
-        recognition_layout.addWidget(recognition_label)
-        recognition_layout.addWidget(recognition_combo)
-        recognition_layout.addStretch()  # 添加弹性空间
+        self.brief_layout.addWidget(self.image_label)
+        self.brief_panel.add_content(self.brief_content)
+        layout.addWidget(self.brief_panel)
 
-        panel1_widget = QWidget()
-        panel1_widget.setLayout(recognition_layout)
-        panel1.add_content(panel1_widget)
-        layout.addWidget(panel1)
+        # 详细信息面板（默认折叠）
+        self.detail_panel = SmoothCollapsiblePanel("Detailed Information")
+        self.detail_content = QWidget()
+        self.detail_layout = QVBoxLayout(self.detail_content)
 
-        # 第二个面板：动作方法
-        panel2 = SmoothCollapsiblePanel("Action Settings")
-        action_layout = QHBoxLayout()
-        action_label = QLabel("Action Method:")
-        action_combo = QComboBox()
-        action_combo.addItems([
-            "DoNothing", "Click", "Swipe", "Key",
-            "InputText", "StartApp", "StopApp",
-            "StopTask", "Custom"
-        ])
+        # 添加详细信息的内容（可以根据需要添加更多控件）
+        detail_label = QLabel("这里是详细信息的内容")
+        self.detail_layout.addWidget(detail_label)
 
-        # 调整样式
-        action_layout.addWidget(action_label)
-        action_layout.addWidget(action_combo)
-        action_layout.addStretch()  # 添加弹性空间
+        self.detail_panel.add_content(self.detail_content)
+        layout.addWidget(self.detail_panel)
 
-        panel2_widget = QWidget()
-        panel2_widget.setLayout(action_layout)
-        panel2.add_content(panel2_widget)
-        layout.addWidget(panel2)
+        # 默认状态：展开简略信息，折叠详细信息
+        self.detail_panel.toggle_content()  # 折叠详细信息
 
-        # 第三个面板：速率限制和超时
-        panel3 = SmoothCollapsiblePanel("Rate Limit and Timeout")
-        rate_timeout_layout = QVBoxLayout()
-
-        # 速率限制
-        rate_limit_label = QLabel("Rate Limit:")
-        rate_limit_input = QLineEdit()
-        rate_limit_input.setPlaceholderText("1000")
-
-        # 超时
-        timeout_label = QLabel("Timeout:")
-        timeout_input = QLineEdit()
-        timeout_input.setPlaceholderText("1000")
-
-        rate_timeout_layout.addWidget(rate_limit_label)
-        rate_timeout_layout.addWidget(rate_limit_input)
-        rate_timeout_layout.addSpacing(20)  # 添加间隔
-        rate_timeout_layout.addWidget(timeout_label)
-        rate_timeout_layout.addWidget(timeout_input)
-        rate_timeout_layout.addStretch()  # 添加弹性空间
-
-        panel3_widget = QWidget()
-        panel3_widget.setLayout(rate_timeout_layout)
-        panel3.add_content(panel3_widget)
-        layout.addWidget(panel3)
-
-        # 添加弹性空间，确保布局向上对齐
+        # 添加弹性空间
         layout.addStretch()
 
-        # 设置大小策略为 QSizePolicy.Minimum
-        # self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        # 设置默认的简略信息
+        self.set_brief_info()
 
-    def minimumSizeHint(self):
-        # 最小尺寸提示
-        return self.layout().minimumSize()
+    def set_brief_info(self, image_path=None):
+        """设置简略信息（图片）"""
+        if image_path:
+            pixmap = QPixmap(image_path)
+            if not pixmap.isNull():
+                self.image_label.setPixmap(pixmap)
+                return
 
-    def apply_settings(self):
-        # 收集和处理设置
-        print("Settings applied!")
+        # 如果没有图片路径或图片加载失败，显示默认文本
+        self.image_label.clear()
+        self.image_label.setText("暂无简略信息")
+        self.image_label.setAlignment(Qt.AlignCenter)
+
 
 class DynamicNodeWidgetWrapper(NodeBaseWidget):
     """
@@ -277,49 +247,6 @@ class MyNode(BaseNode):
     # set the initial default node name.
     NODE_NAME = 'my node'
 
-    default_properties = {
-        'recognition': {
-            'type': 'combo_menu',
-            'label': 'Recognition',
-            'items': [
-                "DirectHit", "TemplateMatch", "FeatureMatch",
-                "ColorMatch", "OCR", "NeuralNetworkClassify",
-                "NeuralNetworkDetect", "Custom"
-            ],
-            'default': "DirectHit"
-        },
-        'action': {
-            'type': 'combo_menu',
-            'label': 'Actions',
-            'items': [
-                "DoNothing", "Click", "Swipe", "Key",
-                "InputText", "StartApp", "StopApp",
-                "StopTask", "Custom"
-            ],
-            'default': "DoNothing"
-        },
-        'rate_limit': {
-            'type': 'text_input',
-            'label': "Rate Limit (ms)",
-            'placeholder': "1000"
-        },
-        'timeout': {
-            'type': 'text_input',
-            'label': "Timeout (ms)",
-            'placeholder': "20000"
-        },
-        'inverse': {
-            'type': 'checkbox',
-            'label': "Inverse Recognition",
-            'state': False
-        },
-        'enabled': {
-            'type': 'checkbox',
-            'label': "Enable Task",
-            'state': True
-        },
-        # 更多属性...
-    }
     def __init__(self):
         super(MyNode, self).__init__()
 
@@ -334,6 +261,7 @@ class MyNode(BaseNode):
 
         self.add_custom_widget(node_widget, tab='Custom')
     def on_input_connected(self, in_port, out_port):
+        print("hello world")
         self.update()
 
 class TaskNodeGraph(QtWidgets.QWidget):

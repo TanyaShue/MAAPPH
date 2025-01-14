@@ -7,7 +7,7 @@ from PySide2.QtWidgets import (
 from src.node_graph.graph_widget import TaskNodeGraph
 from src.ui.data_display import DataDisplayWidget
 from src.ui.setting_widget import SettingWidget
-from src.ui.note_widget import NoteWidget
+from src.ui.note_setting_widget import NoteSettingWidget
 from src.utils.app_config import AdbConfig
 from src.utils.maa_controller import MaaController
 
@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(setting_widget)
 
         # 中间节点面板
-        note_widget = NoteWidget()
+        note_widget = NoteSettingWidget()
 
         # 右侧数据展示
         data_display = DataDisplayWidget()
@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         setting_widget.connect_resource_signal.connect(self.initialize_resource)
         setting_widget.open_pipeline_in_node_graph_signal.connect(node_graph.create_nodes_from_json)
         node_graph.note_select.connect(note_widget.load_settings_from_node)
-        data_display.screen_label.update_screenshot_path.connect(note_widget.update_screenshot_path)
+        data_display.screen_label.update_screenshot_path.connect(note_widget.update_template_path)
 
 
     async def async_initialize_controller(self, adb_config: AdbConfig, user_path: str = "./"):

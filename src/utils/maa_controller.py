@@ -156,10 +156,10 @@ class MaaController:
         task_detail = self.tasker.post_pipeline(pipeline).wait().get()
         return task_detail
 
-    def take_screenshot(self) -> None:
-        """Take a screenshot using the controller"""
-        if self.controller:
-            self.controller.post_screencap().wait()
+    # def take_screenshot(self) -> None:
+    #     """Take a screenshot using the controller"""
+    #     if self.controller:
+    #         self.controller.post_screencap().wait()
 
     def click(self, x: int, y: int) -> None:
         """Perform a click action at the specified coordinates"""

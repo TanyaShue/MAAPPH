@@ -1,5 +1,5 @@
 from typing import List, Optional, Union
-from PySide2.QtCore import QPoint, Signal
+from PySide2.QtCore import QPoint, Signal, Qt
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
                                QCheckBox, QSpinBox, QLineEdit, QTextEdit, QScrollArea,
                                QDoubleSpinBox, QFrame, QPushButton)
@@ -8,7 +8,7 @@ from src.utils.maa_controller import MaaController
 from src.utils.task_node import TaskNode
 
 
-class NoteWidget(QWidget):
+class NoteSettingWidget(QWidget):
     settings_changed = Signal()
     def __init__(self, settings: Optional[TaskNode] = None):
         super().__init__()
@@ -158,7 +158,8 @@ class NoteWidget(QWidget):
         layout.addLayout(self.create_row("目标位置:", self.target_edit))
         layout.addLayout(self.create_row("目标偏移:", self.target_offset_edit))
         layout.addLayout(self.create_row("expected:", self.expected_edit))
-        layout.addLayout(self.create_row("template:", self.template_edit))
+        # layout.addLayout(self.create_row("template:", self.template_edit))
+        layout.addLayout(self.create_section("template", "图片名称"))
 
         return group
 
@@ -263,11 +264,15 @@ class NoteWidget(QWidget):
         self.sections[section_name] = section_layout
         self.input_fields[section_name] = []
 
+        # Left label
         label = QLabel(label_text)
         label.setFixedWidth(150)
         section_layout.addWidget(label)
 
+        # Right container
         right_container = QVBoxLayout()
+
+        # Scroll area
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_content = QWidget()
@@ -277,13 +282,22 @@ class NoteWidget(QWidget):
         # Store scroll_layout for later access
         self.sections[f"{section_name}_scroll"] = scroll_layout
 
-        right_container.addWidget(scroll_area)
+        # Add a horizontal layout to contain scroll area and button
+        scroll_and_button_layout = QHBoxLayout()
 
+        # Add scroll area to the left
+        scroll_and_button_layout.addWidget(scroll_area)
+
+        # Add button to the right
         add_button = QPushButton("添加")
         add_button.setFixedWidth(60)
         add_button.clicked.connect(lambda: self.add_row(section_name))
-        right_container.addWidget(add_button)
+        scroll_and_button_layout.addWidget(add_button, alignment=Qt.AlignRight)
 
+        # Add scroll_and_button_layout to the right container
+        right_container.addLayout(scroll_and_button_layout)
+
+        # Add right_container to the section layout
         section_layout.addLayout(right_container)
         return section_layout
 
@@ -507,6 +521,7 @@ class NoteWidget(QWidget):
             self.settings.post_wait_freezes = note_data.get('post_wait_freezes')
         except Exception as e:
             print(f"Error loading settings from node: {e}")
+        self.update_ui_from_settings(self.settings)
 
     def setup_bindings(self):
         """简单直接的双向绑定设置"""
@@ -567,7 +582,7 @@ class NoteWidget(QWidget):
         self.roi_offset_edit.setText(str(settings.roi_offset or ''))
         self.threshold_spin.setValue(settings.threshold or 0.7)
         self.expected_edit.setText(settings.expected or '')
-        self.template_edit.setText(settings.template or '')
+        # self.template_edit.setText(settings.template or '')
         self.target_edit.setText(str(settings.target or ''))
         self.target_offset_edit.setText(str(settings.target_offset or ''))
         self.rate_limit_spin.setValue(settings.rate_limit or 1000)
@@ -584,6 +599,8 @@ class NoteWidget(QWidget):
             self.update_section('interrupt', settings.interrupt or ["",""])
         if hasattr(settings, 'on_error'):
             self.update_section('on_error', settings.on_error or ["",""])
+        if hasattr(settings, 'template'):
+            self.update_section('template', settings.template or ["",""])
 
     # Section相关的方法
     def on_next_section_changed(self):
@@ -600,6 +617,11 @@ class NoteWidget(QWidget):
         """当error section变化时更新settings"""
         values = self.get_section_values('on_error')
         setattr(self.settings, 'on_error', values)
+
+    def on_template_section_changed(self):
+        """当template section变化时更新settings"""
+        values = self.get_section_values('template')
+        setattr(self.settings, 'template', values)
 
     def update_roi_from_selection(self, start_pos: QPoint, end_pos: QPoint):
 
@@ -646,6 +668,11 @@ class NoteWidget(QWidget):
 
                 self.expected_edit.setPlaceholderText("识别失败")
 
-    def update_screenshot_path(self, path):
+    def update_template_path(self, path):
         self.settings.recognition="FeatureMatch"
-        self.settings.template = path
+        if self.settings.template is None:
+            self.settings.template = [f"{path}"]
+        else:
+            self.settings.template.append(path)
+        # print(self.settings.template)
+        self.update_ui_from_settings(self.settings)
