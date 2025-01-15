@@ -9,7 +9,7 @@ from src.utils.task_node import TaskNode
 
 
 class NoteSettingWidget(QWidget):
-    settings_changed = Signal()
+    save_settings_signal = Signal(TaskNode)
     def __init__(self, settings: Optional[TaskNode] = None):
         super().__init__()
         self.node = None
@@ -73,9 +73,9 @@ class NoteSettingWidget(QWidget):
         self.update_ui_from_settings(self.settings)
 
     def save_node(self):
-        print(self.settings)
         # self.settings.roi = ["a", "b", "c", "d"]
         # self.settings.next=["a", "b", "c", "d"]
+        self.save_settings_signal.emit(self.settings)
 
     def create_row(self, label_text, widget):
         row = QHBoxLayout()

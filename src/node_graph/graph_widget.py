@@ -1,4 +1,5 @@
 import json
+import os
 
 from PySide2.QtCore import Signal, Qt
 from PySide2.QtGui import QPixmap
@@ -11,6 +12,8 @@ from Qt.QtWidgets import (
 )
 
 from NodeGraphQt import NodeGraph, BaseNode, NodeBaseWidget
+from src.utils.app_config import Config
+from src.utils.task_node import TaskNode
 
 
 class SmoothCollapsiblePanel(QWidget):
@@ -251,6 +254,7 @@ class MyNode(BaseNode):
         super(MyNode, self).__init__()
 
         # create input and output port.
+        self.images_path = None
         self.add_input('in',multi_input=True)
         self.add_output('next',)
         self.add_output('interrupt')
@@ -264,12 +268,54 @@ class MyNode(BaseNode):
         print("hello world")
         self.update()
 
+    def update(self):
+        super().update()
+        current_dir = os.getcwd()
+        config_path = os.path.join(current_dir, "config", "app_config.json")
+        app_config = Config.from_file(config_path)
+        self.images_path = app_config.maa_resource_path# Get the custom widget
+        custom_widgets = self.view.widgets
+        if not custom_widgets:
+            return
+
+        # Get the first widget (DynamicNodeWidgetWrapper)
+        # custom_widgets is a dictionary, so we need to get the first value
+        wrapper_widget = next(iter(custom_widgets.values()), None)
+        if not wrapper_widget:
+            return
+
+        # Get the CustomWidget instance
+        custom_widget = wrapper_widget.get_custom_widget()
+        if not custom_widget:
+            return
+
+        # Print note_data for debugging
+        print("Update note_data:", self.note_data)
+
+        # If note_data exists and contains a template path
+        if self.note_data and 'template' in self.note_data:
+            template = self.note_data['template']
+            if isinstance(template, str):  # If template is a single string
+                print(f"Updating image with template: {template}")
+                image_path=os.path.join(self.images_path,"image",template)
+                print(image_path)
+                custom_widget.set_brief_info(image_path)
+            elif isinstance(template, list):  # If template is a list of strings
+                print(f"Updating image with first template from list: {template[0]}")
+                custom_widget.set_brief_info(template[0])
+
+        else:
+            # Clear the image if no template is available
+            custom_widget.set_brief_info(None)
+
+
 class TaskNodeGraph(QtWidgets.QWidget):
     note_select =Signal(MyNode)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.task_data = None
+        self.node_from_path = None
+        self.task_data = {}  # Initialize task_data here
         layout = QtWidgets.QVBoxLayout(self)
         self.node_graph = NodeGraph()
         from pathlib import Path
@@ -293,15 +339,18 @@ class TaskNodeGraph(QtWidgets.QWidget):
 
 
     def create_nodes_from_json(self,json_file_path):
+        self.nodes={} # 清空节点
         y_pos = 0
         x_pos =0
+        self.node_from_path = f"{json_file_path}_bak"
         try:
             with open(json_file_path, "r", encoding="utf-8") as file:
                 task_data = json.load(file)
         except FileNotFoundError:
             print(FileNotFoundError)
-
+        print(task_data)
         self.task_data = task_data
+        self.node_graph.clear_session()
         # 创建节点
         for task_name, task_config in self.task_data.items():
             node = self.node_graph.create_node('io.github.jchanvfx.MyNode', name=task_name, pos=[x_pos, y_pos])
@@ -310,4 +359,48 @@ class TaskNodeGraph(QtWidgets.QWidget):
             x_pos += 1000
             # y_pos += 100
             self.nodes[task_name] = node
+            node.update()
 
+    def add_node(self, node: TaskNode):
+        # Create a dictionary to store the node configuration
+        node_config = {}
+
+        # Get all fields from the dataclass
+        for field in node.__dataclass_fields__:
+            if (field != 'NODE_NAME' and
+                    field != 'signals'):
+                # Get value from the private field
+                value = getattr(node, f"_{field}")
+                if value is not None:  # Only include non-None values
+                    node_config[field] = value
+
+        # Add the node configuration to task_data
+        self.task_data[node.NODE_NAME] = node_config
+
+        # Create a new node in the graph
+        x_pos = len(self.nodes) * 1000  # Maintain the same spacing as in create_nodes_from_json
+        y_pos = 0
+        new_node = self.node_graph.create_node('io.github.jchanvfx.MyNode',
+                                               name=node.NODE_NAME)
+        new_node.note_data = node_config
+
+        # Add to nodes dictionary
+        self.nodes[node.NODE_NAME] = new_node
+        self.save_nodes_to_json()
+
+    def save_nodes_to_json(self):
+        try:
+            if self.node_from_path is None:
+                self.node_from_path = "nodes.json"
+            # 将节点数据保存到字典
+            nodes_data = {}
+            for node_name, node in self.nodes.items():
+                nodes_data[node_name] = node.note_data
+
+            # 将字典写入到 JSON 文件
+            with open(self.node_from_path, "w", encoding="utf-8") as file:
+                json.dump(nodes_data, file, ensure_ascii=False, indent=4)
+
+            print(f"Nodes successfully saved to {self.node_from_path}")
+        except Exception as e:
+            print(f"An error occurred while saving nodes to JSON: {e}")
