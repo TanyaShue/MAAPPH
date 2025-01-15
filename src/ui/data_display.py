@@ -9,6 +9,78 @@ from PySide2.QtWidgets import (
     QHBoxLayout, QPushButton
 )
 from src.utils.maa_controller import MaaController
+from PySide2.QtCore import QPoint, QRect, Signal, Qt
+from PySide2.QtGui import QPixmap, QPainter, QColor, QPen
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QMenu, QPushButton
+
+
+class InfoPanel(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedWidth(300)
+
+        # 创建垂直布局
+        layout = QVBoxLayout(self)
+
+        # 添加三个按钮
+        self.button1 = QPushButton("保存并编辑next")
+        self.button2 = QPushButton("保存并编辑interrupt")
+        self.button3 = QPushButton("保存并编辑on_error")
+
+        # 添加弹性空间，使按钮靠下对齐
+        layout.addStretch()
+        layout.addWidget(self.button1)
+        layout.addWidget(self.button2)
+        layout.addWidget(self.button3)
+
+        # 设置白色背景
+        self.setStyleSheet("background-color: white;")
+
+        # 存储需要显示的信息
+        # self.start_pos = None
+        # self.end_pos = None
+        # self.last_screenshot_path = None
+        # self.cropped_image = None
+    #
+    # def update_info(self, start_pos=None, end_pos=None, screenshot_path=None, cropped_image=None):
+    #     self.start_pos = start_pos
+    #     self.end_pos = end_pos
+    #     self.last_screenshot_path = screenshot_path
+    #     self.cropped_image = cropped_image
+    #     self.update()  # 触发重绘
+    #
+    # def paintEvent(self, event):
+    #     super().paintEvent(event)
+    #
+    #     painter = QPainter(self)
+    #     painter.setRenderHint(QPainter.Antialiasing)
+    #
+    #     y = 120  # 起始y坐标，在按钮下方
+    #
+    #     # 绘制坐标信息
+    #     if self.start_pos:
+    #         text_lines = [f"起点: ({self.start_pos.x()}, {self.start_pos.y()})"]
+    #         if self.end_pos:
+    #             text_lines.append(f"终点: ({self.end_pos.x()}, {self.end_pos.y()})")
+    #             width = abs(self.end_pos.x() - self.start_pos.x())
+    #             height = abs(self.end_pos.y() - self.start_pos.y())
+    #             text_lines.append(f"roi:[{self.start_pos.x()}, {self.start_pos.y()}, {width}, {height}]")
+    #
+    #         if self.last_screenshot_path:
+    #             text_lines.append(f"已保存: {self.last_screenshot_path}")
+    #
+    #         for line in text_lines:
+    #             # 绘制黑色描边
+    #             painter.setPen(QColor(0, 0, 0))
+    #             for dx in [-1, 1]:
+    #                 for dy in [-1, 1]:
+    #                     painter.drawText(10 + dx, y + dy, line)
+    #
+    #             # 绘制白色文本
+    #             painter.setPen(QColor(255, 255, 255))
+    #             painter.drawText(10, y, line)
+    #             y += 20
+
 
 
 class CoordinateLabel(QLabel):
@@ -26,6 +98,21 @@ class CoordinateLabel(QLabel):
         self.original_image = None
         self.cropped_image = None
         self.last_screenshot_path = None
+
+        # 创建水平布局来容纳主显示区和信息面板
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        # 创建主显示区
+        self.display_label = QLabel(self)
+        self.display_label.setMinimumSize(640, 360)
+        self.layout.addWidget(self.display_label)
+
+        # 创建信息面板
+        self.info_panel = InfoPanel(self)
+        self.layout.addWidget(self.info_panel)
+
+        # 创建上下文菜单
         self.context_menu = QMenu(self)
 
         # 创建上下文菜单项
