@@ -239,75 +239,94 @@ class DynamicNodeWidgetWrapper(NodeBaseWidget):
 
         pass
 
+
 class MyNode(BaseNode):
     """
-    Example node.
+    Example node with automatic connection capabilities based on node data.
     """
 
-    # set a unique node identifier.
     __identifier__ = 'io.github.jchanvfx'
-
-    # set the initial default node name.
     NODE_NAME = 'my node'
 
     def __init__(self):
         super(MyNode, self).__init__()
-
-        # create input and output port.
         self.images_path = None
-        self.add_input('in',multi_input=True)
-        self.add_output('next',)
+        self.add_input('in', multi_input=True)
+        self.add_output('next')
         self.add_output('interrupt')
         self.add_output('error')
         self.note_data = None
-        # add custom widget to node with "node.view" as the parent.
         node_widget = DynamicNodeWidgetWrapper(self.view)
-
         self.add_custom_widget(node_widget, tab='Custom')
+        # self._check_and_create_connections()
+
     def on_input_connected(self, in_port, out_port):
-        print("hello world")
+        # print("hello world")
+        # in_port.connect_to(out_port)
         self.update()
 
     def update(self):
         super().update()
+        # Original config loading logic
         current_dir = os.getcwd()
         config_path = os.path.join(current_dir, "config", "app_config.json")
         app_config = Config.from_file(config_path)
-        self.images_path = app_config.maa_resource_path# Get the custom widget
+        self.images_path = app_config.maa_resource_path
+
+        # New connection logic
+        self._check_and_create_connections()
+
+        # Original widget update logic
         custom_widgets = self.view.widgets
         if not custom_widgets:
             return
 
-        # Get the first widget (DynamicNodeWidgetWrapper)
-        # custom_widgets is a dictionary, so we need to get the first value
         wrapper_widget = next(iter(custom_widgets.values()), None)
         if not wrapper_widget:
             return
 
-        # Get the CustomWidget instance
         custom_widget = wrapper_widget.get_custom_widget()
         if not custom_widget:
             return
 
-        # Print note_data for debugging
-        print("Update note_data:", self.note_data)
-
-        # If note_data exists and contains a template path
         if self.note_data and 'template' in self.note_data:
             template = self.note_data['template']
-            if isinstance(template, str):  # If template is a single string
-                print(f"Updating image with template: {template}")
-                image_path=os.path.join(self.images_path,"image",template)
-                print(image_path)
+            if isinstance(template, str):
+                image_path = os.path.join(self.images_path, "image", template)
                 custom_widget.set_brief_info(image_path)
-            elif isinstance(template, list):  # If template is a list of strings
-                print(f"Updating image with first template from list: {template[0]}")
+            elif isinstance(template, list):
                 custom_widget.set_brief_info(template[0])
-
         else:
-            # Clear the image if no template is available
             custom_widget.set_brief_info(None)
 
+    def _check_and_create_connections(self):
+        """
+        Check all nodes in the graph for references to this node and create connections.
+        """
+        if not self.graph:
+            return
+
+        current_node_name = self.NODE_NAME
+
+        # Check each node in the graph
+        for node in self.graph.all_nodes():
+            if node == self or not node.note_data:  # Skip self and nodes without note_data
+                continue
+
+            # Define fields to check
+            fields = ['next', 'interrupt', 'error']
+
+            for field in fields:
+                if field in node.note_data:
+                    target_list = node.note_data[field]
+                    if isinstance(target_list, str):
+                        target_list = [target_list]
+
+                    if current_node_name in target_list:
+                        output_port = node.get_output(field)
+                        if output_port:
+                            output_port.connect_to(self.get_input('in'))
+                            # self._connect_ports(self.get_input('in'), output_port)
 
 class TaskNodeGraph(QtWidgets.QWidget):
     note_select =Signal(MyNode)
@@ -348,7 +367,6 @@ class TaskNodeGraph(QtWidgets.QWidget):
                 task_data = json.load(file)
         except FileNotFoundError:
             print(FileNotFoundError)
-        print(task_data)
         self.task_data = task_data
         self.node_graph.clear_session()
         # 创建节点
@@ -360,6 +378,8 @@ class TaskNodeGraph(QtWidgets.QWidget):
             # y_pos += 100
             self.nodes[task_name] = node
             node.update()
+        nodes = self.node_graph.selected_nodes() or self.node_graph.all_nodes()
+        self.node_graph.auto_layout_nodes(nodes=nodes, down_stream=False)
 
     def add_node(self, node: TaskNode):
         # Create a dictionary to store the node configuration
@@ -376,16 +396,20 @@ class TaskNodeGraph(QtWidgets.QWidget):
 
         # Add the node configuration to task_data
         self.task_data[node.NODE_NAME] = node_config
-
+        if node.NODE_NAME in self.nodes:
+            # Update existing node
+            existing_node = self.nodes[node.NODE_NAME]
+            existing_node.note_data = node_config
+        else:
         # Create a new node in the graph
-        x_pos = len(self.nodes) * 1000  # Maintain the same spacing as in create_nodes_from_json
-        y_pos = 0
-        new_node = self.node_graph.create_node('io.github.jchanvfx.MyNode',
-                                               name=node.NODE_NAME)
-        new_node.note_data = node_config
+            x_pos = len(self.nodes) * 1000  # Maintain the same spacing as in create_nodes_from_json
+            y_pos = 0
+            new_node = self.node_graph.create_node('io.github.jchanvfx.MyNode',
+                                                   name=node.NODE_NAME)
+            new_node.note_data = node_config
 
-        # Add to nodes dictionary
-        self.nodes[node.NODE_NAME] = new_node
+            # Add to nodes dictionary
+            self.nodes[node.NODE_NAME] = new_node
         self.save_nodes_to_json()
 
     def save_nodes_to_json(self):
