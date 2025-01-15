@@ -407,8 +407,8 @@ class NoteSettingWidget(QWidget):
             self.settings.target = note_data.get('target')
             self.settings.target_offset = note_data.get('target_offset')
 
-            self.settings.target = note_data.get('custom_action')
-            self.settings.target_offset = note_data.get('target_offset')
+            # self.settings.target = note_data.get('custom_action')
+            # self.settings.target_offset = note_data.get('target_offset')
 
             self.settings.next = note_data.get('next')
             self.settings.interrupt = note_data.get('interrupt')
@@ -474,8 +474,8 @@ class NoteSettingWidget(QWidget):
 
         # 从settings更新到UI控件
         self.settings_title.setText(settings.NODE_NAME or '')
-        self.recognition_combo.setCurrentText(settings.recognition or '')
-        self.actions_combo.setCurrentText(settings.action or '')
+        self.recognition_combo.setCurrentText(settings.recognition or 'DirectHit')
+        self.actions_combo.setCurrentText(settings.action or 'DoNothing')
         self.enabled_check.setChecked(bool(settings.enabled) or True)
         self.focus_check.setChecked(bool(settings.focus))
         self.inverse_check.setChecked(bool(settings.inverse))
@@ -579,18 +579,49 @@ class NoteSettingWidget(QWidget):
 
     def save_settings_and_next(self):
         """保存设置并跳转到下一个节点"""
-        new_setting=TaskNode()
+        self.save_settings_and_add("next")
+
+    def save_settings_and_interrupt(self):
+        """保存设置并添加中断节点"""
+        self.save_settings_and_add("interrupt")
+
+    def save_settings_and_on_error(self):
+        """保存设置并添加错误处理节点"""
+        self.save_settings_and_add("on_error")
+
+    def save_settings_and_add(self, attribute: str):
+        """
+        保存设置并将新节点名称添加到指定属性。
+
+        :param attribute: 要更新的 settings 属性名称 (如 'next', 'interrupt', 'on_error')。
+        """
+        new_setting = TaskNode()
+        new_node_name = self.generate_unique_node_name()
+        new_setting.NODE_NAME = new_node_name
+
+        attr_list = getattr(self.settings, attribute, None)
+        if attr_list is None:
+            setattr(self.settings, attribute, [new_node_name])
+        else:
+            attr_list.append(new_node_name)
+        print(attr_list)
+
+        self.save_node()
+        self.settings = new_setting
+        self.update_ui_from_settings(self.settings)
+
+    def generate_unique_node_name(self) -> str:
+        """
+        生成唯一的节点名称。
+
+        :return: 唯一的节点名称。
+        """
         new_node_name = f"{self.node_file_name}_step_1"
-        existing_names = {node for node in self.nodes}  # 将节点名称存入集合，提升查找效率
+        existing_names = {node for node in self.nodes}  # 使用集合提高查找效率
 
         step = 1
         while new_node_name in existing_names:
             step += 1
             new_node_name = f"{self.node_file_name}_step_{step}"
 
-        new_setting.NODE_NAME = new_node_name
-        self.settings.next.append(new_node_name)
-        self.save_node()
-        self.settings=new_setting
-        # self.save_node()
-        # self.save_settings_signal.emit(self.settings)
+        return new_node_name

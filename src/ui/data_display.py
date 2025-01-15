@@ -8,6 +8,8 @@ from PySide2.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QMenu,
     QHBoxLayout, QPushButton
 )
+
+from src.utils.app_config import Config
 from src.utils.maa_controller import MaaController
 from PySide2.QtCore import QPoint, QRect, Signal, Qt
 from PySide2.QtGui import QPixmap, QPainter, QColor, QPen
@@ -183,9 +185,17 @@ class CoordinateLabel(QLabel):
 
         # Save with timestamp
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filepath = f'img/screenshot_{timestamp}.png'
+        current_dir = os.getcwd()
+        config_path = os.path.join(current_dir, "config", "app_config.json")
+        app_config = Config.from_file(config_path)
+        resource_path = app_config.maa_resource_path
+        filepath = os.path.join(resource_path, "image", f'template/screenshot_{timestamp}.png')
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)  # 确保目录存在
         cropped.save(filepath)
 
+        # filepath = f'img/screenshot_{timestamp}.png'
+        # cropped.save(filepath)
+        # print(f"Screenshot saved to {filepath}")
         self.cropped_image = cropped  # Store as QPixmap
         self.last_screenshot_path = filepath
         self.update()

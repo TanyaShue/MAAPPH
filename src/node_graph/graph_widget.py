@@ -250,11 +250,10 @@ class MyNode(BaseNode):
 
     def __init__(self):
         super(MyNode, self).__init__()
-        self.images_path = None
         self.add_input('in', multi_input=True)
         self.add_output('next')
         self.add_output('interrupt')
-        self.add_output('error')
+        self.add_output('on_error')
         self.note_data = None
         node_widget = DynamicNodeWidgetWrapper(self.view)
         self.add_custom_widget(node_widget, tab='Custom')
@@ -271,7 +270,7 @@ class MyNode(BaseNode):
         current_dir = os.getcwd()
         config_path = os.path.join(current_dir, "config", "app_config.json")
         app_config = Config.from_file(config_path)
-        self.images_path = app_config.maa_resource_path
+        resource_path = app_config.maa_resource_path
 
         # New connection logic
         self._check_and_create_connections()
@@ -292,7 +291,7 @@ class MyNode(BaseNode):
         if self.note_data and 'template' in self.note_data:
             template = self.note_data['template']
             if isinstance(template, str):
-                image_path = os.path.join(self.images_path, "image", template)
+                image_path = os.path.join(resource_path, "image", template)
                 custom_widget.set_brief_info(image_path)
             elif isinstance(template, list):
                 custom_widget.set_brief_info(template[0])
@@ -314,7 +313,7 @@ class MyNode(BaseNode):
                 continue
 
             # Define fields to check
-            fields = ['next', 'interrupt', 'error']
+            fields = ['next', 'interrupt', 'on_error']
 
             for field in fields:
                 if field in node.note_data:
@@ -354,14 +353,15 @@ class TaskNodeGraph(QtWidgets.QWidget):
         layout.addWidget(viewer)
     def on_node_double_clicked(self,node):
         # print(node.name)
+        print(node.note_data,node.NODE_NAME)
         self.note_select.emit(node,self.node_from_path,self.nodes)
 
 
     def create_nodes_from_json(self,json_file_path):
         self.nodes={} # 清空节点
-        y_pos = 0
-        x_pos =0
-        self.node_from_path = f"{json_file_path}_bak"
+        # y_pos = 0
+        # x_pos =0
+        self.node_from_path = json_file_path
         try:
             with open(json_file_path, "r", encoding="utf-8") as file:
                 task_data = json.load(file)
@@ -371,10 +371,10 @@ class TaskNodeGraph(QtWidgets.QWidget):
         self.node_graph.clear_session()
         # 创建节点
         for task_name, task_config in self.task_data.items():
-            node = self.node_graph.create_node('io.github.jchanvfx.MyNode', name=task_name, pos=[x_pos, y_pos])
+            node = self.node_graph.create_node('io.github.jchanvfx.MyNode', name=task_name)
             node.note_data = task_config
             # print(task_config)
-            x_pos += 1000
+            # x_pos += 1000
             # y_pos += 100
             self.nodes[task_name] = node
             node.update()
@@ -411,6 +411,7 @@ class TaskNodeGraph(QtWidgets.QWidget):
             # Add to nodes dictionary
             self.nodes[node.NODE_NAME] = new_node
         self.save_nodes_to_json()
+        self.nodes[node.NODE_NAME].update()
 
     def save_nodes_to_json(self):
         try:
