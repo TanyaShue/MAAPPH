@@ -80,6 +80,7 @@ class MainWindow(QMainWindow):
         node_graph.note_select.connect(note_widget.load_settings_from_node)
         data_display.screen_label.update_screenshot_path.connect(note_widget.update_template_path)
         note_widget.save_settings_signal.connect(node_graph.add_node)
+        data_display.screen_label.info_panel.save_and_edit_next_signal.connect(note_widget.save_settings_and_next)
 
 
     async def async_initialize_controller(self, adb_config: AdbConfig, user_path: str = "./"):

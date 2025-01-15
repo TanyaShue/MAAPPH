@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional, Union
 from PySide2.QtCore import QPoint, Signal, Qt
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
@@ -12,6 +13,8 @@ class NoteSettingWidget(QWidget):
     save_settings_signal = Signal(TaskNode)
     def __init__(self, settings: Optional[TaskNode] = None):
         super().__init__()
+        self.nodes = None
+        self.node_file_name = None
         self.node = None
         self.main_layout = None
         self.settings_title = None
@@ -73,8 +76,6 @@ class NoteSettingWidget(QWidget):
         self.update_ui_from_settings(self.settings)
 
     def save_node(self):
-        # self.settings.roi = ["a", "b", "c", "d"]
-        # self.settings.next=["a", "b", "c", "d"]
         self.save_settings_signal.emit(self.settings)
 
     def create_row(self, label_text, widget):
@@ -371,11 +372,17 @@ class NoteSettingWidget(QWidget):
 
         return group
 
-    def load_settings_from_node(self, node: MyNode):
+    def load_settings_from_node(self, node: MyNode,node_file_name: str,nodes):
         """Load settings from a MyNode instance's note_data attribute."""
         # if not hasattr(node, 'note_data') or not isinstance(node.note_data, dict):
         #     print("Invalid node data. Skipping load.")
         #     return
+        # 提取文件名并去掉 .json 后缀
+        file_name = os.path.splitext(os.path.basename(node_file_name))[0]
+
+        # 保存到 self.node_file_name
+        self.node_file_name = file_name
+        self.nodes = nodes
         if not hasattr(node, 'note_data'):
             node.NODE_NAME ="默认节点"
         if not isinstance(node.note_data, dict):
@@ -569,3 +576,21 @@ class NoteSettingWidget(QWidget):
             self.settings.template.append(path)
         # print(self.settings.template)
         self.update_ui_from_settings(self.settings)
+
+    def save_settings_and_next(self):
+        """保存设置并跳转到下一个节点"""
+        new_setting=TaskNode()
+        new_node_name = f"{self.node_file_name}_step_1"
+        existing_names = {node for node in self.nodes}  # 将节点名称存入集合，提升查找效率
+
+        step = 1
+        while new_node_name in existing_names:
+            step += 1
+            new_node_name = f"{self.node_file_name}_step_{step}"
+
+        new_setting.NODE_NAME = new_node_name
+        self.settings.next.append(new_node_name)
+        self.save_node()
+        self.settings=new_setting
+        # self.save_node()
+        # self.save_settings_signal.emit(self.settings)

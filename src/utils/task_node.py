@@ -38,6 +38,9 @@ class TaskNode:
 
     def __post_init__(self):
         for field in self.__dataclass_fields__:
+            if field == "signals":
+                continue  # 跳过 signals 属性
+
             private_field = f"_{field}"
             setattr(self, private_field, getattr(self, field))  # 初始化私有属性
 
@@ -51,3 +54,4 @@ class TaskNode:
                 self.signals.property_changed.emit(field, value)
 
             setattr(self.__class__, field, property(getter, setter))
+

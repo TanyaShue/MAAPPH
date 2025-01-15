@@ -15,6 +15,9 @@ from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QMenu, QPushButton
 
 
 class InfoPanel(QWidget):
+    save_and_edit_next_signal = Signal()
+    save_and_edit_interrupt_signal = Signal()
+    save_and_edit_on_error_signal = Signal()
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedWidth(300)
@@ -36,52 +39,19 @@ class InfoPanel(QWidget):
         # 设置白色背景
         self.setStyleSheet("background-color: white;")
 
-        # 存储需要显示的信息
-        # self.start_pos = None
-        # self.end_pos = None
-        # self.last_screenshot_path = None
-        # self.cropped_image = None
-    #
-    # def update_info(self, start_pos=None, end_pos=None, screenshot_path=None, cropped_image=None):
-    #     self.start_pos = start_pos
-    #     self.end_pos = end_pos
-    #     self.last_screenshot_path = screenshot_path
-    #     self.cropped_image = cropped_image
-    #     self.update()  # 触发重绘
-    #
-    # def paintEvent(self, event):
-    #     super().paintEvent(event)
-    #
-    #     painter = QPainter(self)
-    #     painter.setRenderHint(QPainter.Antialiasing)
-    #
-    #     y = 120  # 起始y坐标，在按钮下方
-    #
-    #     # 绘制坐标信息
-    #     if self.start_pos:
-    #         text_lines = [f"起点: ({self.start_pos.x()}, {self.start_pos.y()})"]
-    #         if self.end_pos:
-    #             text_lines.append(f"终点: ({self.end_pos.x()}, {self.end_pos.y()})")
-    #             width = abs(self.end_pos.x() - self.start_pos.x())
-    #             height = abs(self.end_pos.y() - self.start_pos.y())
-    #             text_lines.append(f"roi:[{self.start_pos.x()}, {self.start_pos.y()}, {width}, {height}]")
-    #
-    #         if self.last_screenshot_path:
-    #             text_lines.append(f"已保存: {self.last_screenshot_path}")
-    #
-    #         for line in text_lines:
-    #             # 绘制黑色描边
-    #             painter.setPen(QColor(0, 0, 0))
-    #             for dx in [-1, 1]:
-    #                 for dy in [-1, 1]:
-    #                     painter.drawText(10 + dx, y + dy, line)
-    #
-    #             # 绘制白色文本
-    #             painter.setPen(QColor(255, 255, 255))
-    #             painter.drawText(10, y, line)
-    #             y += 20
+        # 连接信号
+        self.button1.clicked.connect(self.save_and_edit_next)
+        self.button2.clicked.connect(self.save_and_edit_interrupt)
+        self.button3.clicked.connect(self.save_and_edit_on_error)
 
+    def save_and_edit_next(self):
+        self.save_and_edit_next_signal.emit()
 
+    def save_and_edit_interrupt(self):
+        self.save_and_edit_interrupt_signal.emit()
+
+    def save_and_edit_on_error(self):
+        self.save_and_edit_on_error_signal.emit()
 
 class CoordinateLabel(QLabel):
     roi_selected = Signal(QPoint, QPoint)

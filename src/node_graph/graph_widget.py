@@ -329,7 +329,7 @@ class MyNode(BaseNode):
                             # self._connect_ports(self.get_input('in'), output_port)
 
 class TaskNodeGraph(QtWidgets.QWidget):
-    note_select =Signal(MyNode)
+    note_select =Signal(MyNode,str,dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -354,7 +354,7 @@ class TaskNodeGraph(QtWidgets.QWidget):
         layout.addWidget(viewer)
     def on_node_double_clicked(self,node):
         # print(node.name)
-        self.note_select.emit(node)
+        self.note_select.emit(node,self.node_from_path,self.nodes)
 
 
     def create_nodes_from_json(self,json_file_path):
@@ -378,7 +378,7 @@ class TaskNodeGraph(QtWidgets.QWidget):
             # y_pos += 100
             self.nodes[task_name] = node
             node.update()
-        nodes = self.node_graph.selected_nodes() or self.node_graph.all_nodes()
+        nodes = self.node_graph.all_nodes()
         self.node_graph.auto_layout_nodes(nodes=nodes, down_stream=False)
 
     def add_node(self, node: TaskNode):
