@@ -189,18 +189,19 @@ class CoordinateLabel(QLabel):
         config_path = os.path.join(current_dir, "config", "app_config.json")
         app_config = Config.from_file(config_path)
         resource_path = app_config.maa_resource_path
-        filepath = os.path.join(resource_path, "image", f'template/screenshot_{timestamp}.png')
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)  # 确保目录存在
-        cropped.save(filepath)
+        image_path=os.path.join(f'template/screenshot_{timestamp}.png')
+        save_path = os.path.join(resource_path, "image",image_path)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)  # 确保目录存在
+        cropped.save(save_path)
 
         # filepath = f'img/screenshot_{timestamp}.png'
         # cropped.save(filepath)
         # print(f"Screenshot saved to {filepath}")
         self.cropped_image = cropped  # Store as QPixmap
-        self.last_screenshot_path = filepath
+        self.last_screenshot_path = save_path
         self.update()
-        self.update_screenshot_path.emit(filepath)
-        return filepath
+        self.update_screenshot_path.emit(image_path)
+        # return image_path
 
     def paintEvent(self, event):
         super().paintEvent(event)

@@ -378,21 +378,22 @@ class NoteSettingWidget(QWidget):
 
     def load_settings_from_node(self):
         """Load settings from a MyNode instance's note_data attribute."""
-        self.node_file_name = self.task_node_manager.get_current_file_path()
-        self.node = self.task_node_manager.selected_node
         try:
-            # Create a new settings object
-            self.settings = type(self.node)()  # 创建同类型的新对象
+            self.node_file_name = self.task_node_manager.get_current_file_path()
+            self.node = self.task_node_manager.selected_node
+            # 创建新的设置对象
+            self.settings = type(self.node)()
 
-            # Copy specific attributes
-            for attr in self.node.__dict__:
-                if attr == 'signals':  # 特殊处理signals属性
-                    self.settings.signals = self.node.signals
-                else:
-                    setattr(self.settings, attr, copy.deepcopy(getattr(self.node, attr)))
+            # 使用copy_from方法复制属性
+            self.settings.copy_from(self.node)
+            self.settings.signals.property_changed.connect(self.update_settings_when_property_changed)
+
+            # 更新UI
+            self.update_ui_from_settings(self.settings)
+
         except Exception as e:
             print(f"Error loading settings from node: {e}")
-        self.update_ui_from_settings(self.settings)
+            raise  # 抛出异常以便更好地调试
 
     def setup_bindings(self):
         """简单直接的双向绑定设置"""
@@ -436,12 +437,11 @@ class NoteSettingWidget(QWidget):
         self.post_freeze_spin.valueChanged.connect(
             lambda value: setattr(self.settings, 'post_wait_freezes', value))
 
-    def update_ui_from_settings(self, settings):
+    def update_ui_from_settings(self, settings: TaskNode):
         """从settings更新UI控件的值"""
         self.settings = settings
         if not settings:
             return
-
         # 从settings更新到UI控件
         self.settings_title.setText(settings.NODE_NAME or '')
         self.recognition_combo.setCurrentText(settings.recognition or 'DirectHit')
@@ -465,7 +465,6 @@ class NoteSettingWidget(QWidget):
         # 更新sections
         if hasattr(settings, 'next'):
             self.update_section('next', settings.next or ["",""])
-            print(settings.next)
         if hasattr(settings, 'interrupt'):
             self.update_section('interrupt', settings.interrupt or ["",""])
         if hasattr(settings, 'on_error'):
@@ -553,7 +552,7 @@ class NoteSettingWidget(QWidget):
 
         # 添加新的路径到 template 列表
         self.settings.template.append(path)
-
+        print(f"当前方法为update_template_path{type(self.settings)}")
         # 更新 UI
         self.update_ui_from_settings(self.settings)
 

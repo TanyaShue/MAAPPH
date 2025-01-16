@@ -388,7 +388,6 @@ class TaskNodeGraph(QtWidgets.QWidget):
         node_config = task_node.to_dict()
         # node_config.pop('NODE_NAME', None)  # Remove NODE_NAME from config
         # Create graph node
-        print(task_node.NODE_NAME)
         graph_node = self.node_graph.create_node(
             'io.github.jchanvfx.MyNode',
             name=task_node.NODE_NAME

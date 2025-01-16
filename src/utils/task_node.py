@@ -1,3 +1,5 @@
+import copy
+
 from PySide2.QtCore import QObject, Signal
 from typing import Optional, List, Union, Dict
 from dataclasses import dataclass, field
@@ -7,7 +9,6 @@ from pathlib import Path
 
 class TaskNodeSignals(QObject):
     property_changed = Signal(str, object)
-
 
 @dataclass
 class TaskNode:
@@ -53,9 +54,23 @@ class TaskNode:
 
             def setter(self, value, field=field_name):
                 setattr(self, f"_{field}", value)
-                self.signals.property_changed.emit(field, value)
+                if hasattr(self, 'signals'):  # Check if signals exists
+                    self.signals.property_changed.emit(field, value)
 
             setattr(self.__class__, field_name, property(getter, setter))
+
+    def copy_from(self, other: 'TaskNode'):
+        """Copy all properties from another TaskNode instance while preserving signal handling"""
+        # 复制id
+        self.id = other.id
+
+        for field_name in self.__dataclass_fields__:
+            if field_name in ["signals"]:  # 只排除signals，允许复制id
+                continue
+            value = getattr(other, field_name)
+            if isinstance(value, (list, dict)):
+                value = copy.deepcopy(value)
+            setattr(self, field_name, value)
 
     @classmethod
     def create_empty(cls) -> 'TaskNode':
