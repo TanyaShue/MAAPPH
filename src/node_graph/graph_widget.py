@@ -251,6 +251,7 @@ class MyNode(BaseNode):
 
     def __init__(self):
         super(MyNode, self).__init__()
+        self.image_path = None
         self.add_input('in', multi_input=True)
         self.add_output('next')
         self.add_output('interrupt')
@@ -288,16 +289,15 @@ class MyNode(BaseNode):
         custom_widget = wrapper_widget.get_custom_widget()
         if not custom_widget:
             return
-
         if self.note_data and 'template' in self.note_data:
             template = self.note_data['template']
             if isinstance(template, str):
-                image_path = os.path.join(resource_path, "image", template)
-                custom_widget.set_brief_info(image_path)
+                self.image_path = os.path.join(resource_path, "image", template)
+                # custom_widget.set_brief_info(image_path)
             elif isinstance(template, list):
-                custom_widget.set_brief_info(template[0])
-        else:
-            custom_widget.set_brief_info(None)
+                self.image_path = os.path.join(resource_path, "image", template[0])
+        custom_widget.set_brief_info(self.image_path)
+
 
     def _check_and_create_connections(self):
         """

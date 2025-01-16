@@ -552,7 +552,6 @@ class NoteSettingWidget(QWidget):
 
         # 添加新的路径到 template 列表
         self.settings.template.append(path)
-        print(f"当前方法为update_template_path{type(self.settings)}")
         # 更新 UI
         self.update_ui_from_settings(self.settings)
 

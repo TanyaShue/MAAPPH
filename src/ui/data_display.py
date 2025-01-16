@@ -2,10 +2,8 @@ import os
 
 from datetime import datetime
 from functools import partial
-from PySide2.QtCore import QPoint, QRect, Signal
 from PySide2.QtGui import QPixmap, Qt, QPainter, QColor, QPen
 from PySide2.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QMenu,
     QHBoxLayout, QPushButton
 )
 
@@ -189,7 +187,7 @@ class CoordinateLabel(QLabel):
         config_path = os.path.join(current_dir, "config", "app_config.json")
         app_config = Config.from_file(config_path)
         resource_path = app_config.maa_resource_path
-        image_path=os.path.join(f'template/screenshot_{timestamp}.png')
+        image_path=os.path.join(f'template\screenshot_{timestamp}.png')
         save_path = os.path.join(resource_path, "image",image_path)
         os.makedirs(os.path.dirname(save_path), exist_ok=True)  # 确保目录存在
         cropped.save(save_path)
