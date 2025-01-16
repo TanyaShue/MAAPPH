@@ -70,6 +70,7 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
+
         # 连接信号
         data_display.screen_label.roi_selected.connect(note_widget.update_roi_from_selection)
         data_display.screen_label.target_selected.connect(note_widget.update_target_from_selection)
@@ -83,7 +84,6 @@ class MainWindow(QMainWindow):
         data_display.screen_label.info_panel.save_and_edit_next_signal.connect(note_widget.save_settings_and_next)
         data_display.screen_label.info_panel.save_and_edit_interrupt_signal.connect(note_widget.save_settings_and_interrupt)
         data_display.screen_label.info_panel.save_and_edit_on_error_signal.connect(note_widget.save_settings_and_on_error)
-
 
     async def async_initialize_controller(self, adb_config: AdbConfig, user_path: str = "./"):
 
@@ -113,7 +113,6 @@ class MainWindow(QMainWindow):
     def initialize_resource(self, maa_resource_path: str):
         asyncio.create_task(self.async_initialize_resource(maa_resource_path))
             
-            # self.MaaController.tasker.post_pipeline("打开游戏")
     def setup_splitter_appearance(self, splitter):
         """设置分割器的外观"""
         # 设置分割条的宽度

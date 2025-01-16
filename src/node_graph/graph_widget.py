@@ -353,7 +353,6 @@ class TaskNodeGraph(QtWidgets.QWidget):
         layout.addWidget(viewer)
     def on_node_double_clicked(self,node):
         # print(node.name)
-        print(node.note_data,node.NODE_NAME)
         self.note_select.emit(node,self.node_from_path,self.nodes)
 
 
@@ -402,8 +401,6 @@ class TaskNodeGraph(QtWidgets.QWidget):
             existing_node.note_data = node_config
         else:
         # Create a new node in the graph
-            x_pos = len(self.nodes) * 1000  # Maintain the same spacing as in create_nodes_from_json
-            y_pos = 0
             new_node = self.node_graph.create_node('io.github.jchanvfx.MyNode',
                                                    name=node.NODE_NAME)
             new_node.note_data = node_config
