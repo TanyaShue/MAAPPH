@@ -330,7 +330,7 @@ class MyNode(BaseNode):
 
 
 class TaskNodeGraph(QtWidgets.QWidget):
-    node_select = Signal(object)  # Changed to more generic name
+    node_select = Signal()  # Changed to more generic name
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -358,10 +358,11 @@ class TaskNodeGraph(QtWidgets.QWidget):
 
     def on_node_double_clicked(self, graph_node):
         # Get TaskNode from manager using graph node's id
-        task_node = self.node_manager.get_node_by_id(graph_node.node_id)
-        if task_node:
-            print(f"Double-clicked node: {task_node.NODE_NAME}")
-            self.node_select.emit(task_node)
+        self.node_manager.selected_node = self.node_manager.get_node_by_id(graph_node.node_id)
+        print(self.node_manager.selected_node)
+        self.node_select.emit()
+        print(f"Double-clicked node: {graph_node.NODE_NAME}")
+
 
     def load_from_file(self, file_path: str):
         """Load nodes from file using TaskNodeManager"""

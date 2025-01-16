@@ -6,13 +6,14 @@ from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCombo
                                QDoubleSpinBox, QFrame, QPushButton)
 from src.node_graph.graph_widget import MyNode
 from src.utils.maa_controller import MaaController
-from src.utils.task_node import TaskNode
+from src.utils.task_node import TaskNode, TaskNodeManager
 
 
 class NoteSettingWidget(QWidget):
     save_settings_signal = Signal(TaskNode)
     def __init__(self, settings: Optional[TaskNode] = None):
         super().__init__()
+        self.task_node_manager = TaskNodeManager()
         self.nodes = None
         self.node_file_name = None
         self.node = None
@@ -372,54 +373,13 @@ class NoteSettingWidget(QWidget):
 
         return group
 
-    def load_settings_from_node(self, node: MyNode,node_file_name: str,nodes):
+    def load_settings_from_node(self):
         """Load settings from a MyNode instance's note_data attribute."""
-        # if not hasattr(node, 'note_data') or not isinstance(node.note_data, dict):
-        #     print("Invalid node data. Skipping load.")
-        #     return
-        # 提取文件名并去掉 .json 后缀
-        file_name = os.path.splitext(os.path.basename(node_file_name))[0]
-
-        # 保存到 self.node_file_name
-        self.node_file_name = file_name
-        self.nodes = nodes
-        if not hasattr(node, 'note_data'):
-            node.NODE_NAME ="默认节点"
-        if not isinstance(node.note_data, dict):
-            node.note_data = {}
-        self.node=node
-        self.settings.NODE_NAME = node.NODE_NAME
-        note_data = node.note_data
+        self.node_file_name = self.task_node_manager.get_current_file_path()
+        self.node = self.task_node_manager.selected_node
         try:
-            # Map note_data to TaskNode attributes
-            self.settings.recognition = note_data.get('recognition')
-            self.settings.action = note_data.get('action')
-            self.settings.enabled = note_data.get('enabled')
-            self.settings.focus = note_data.get('focus')
-            self.settings.inverse = note_data.get('inverse')
-
-            self.settings.roi = note_data.get('roi')
-            self.settings.roi_offset = note_data.get('roi_offset')
-            self.settings.threshold = note_data.get('threshold')
-
-            self.settings.expected = note_data.get('expected')
-            self.settings.template = note_data.get('template')
-            self.settings.target = note_data.get('target')
-            self.settings.target_offset = note_data.get('target_offset')
-
-            # self.settings.target = note_data.get('custom_action')
-            # self.settings.target_offset = note_data.get('target_offset')
-
-            self.settings.next = note_data.get('next')
-            self.settings.interrupt = note_data.get('interrupt')
-            self.settings.on_error = note_data.get('on_error')
-
-            self.settings.rate_limit = note_data.get('rate_limit')
-            self.settings.timeout = note_data.get('timeout')
-            self.settings.pre_delay = note_data.get('pre_delay')
-            self.settings.post_delay = note_data.get('post_delay')
-            self.settings.pre_wait_freezes = note_data.get('pre_wait_freezes')
-            self.settings.post_wait_freezes = note_data.get('post_wait_freezes')
+            # Map note_data to TaskNode attributess
+            self.settings=self.node
         except Exception as e:
             print(f"Error loading settings from node: {e}")
         self.update_ui_from_settings(self.settings)

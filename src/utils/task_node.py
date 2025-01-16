@@ -36,7 +36,7 @@ class TaskNode:
 
     def __init__(self):
         self.signals = TaskNodeSignals()
-        self.id = str(uuid.uuid4())
+        self.id = str(uuid.uuid4())[:8]
         self._init_properties()
 
     def _init_properties(self):
@@ -91,12 +91,20 @@ class TaskNode:
         valid_fields = {k: v for k, v in node_data.items() if k in cls.__dataclass_fields__}
         node.update_from_dict(valid_fields)
         return node
-
-
 class TaskNodeManager:
+    _instance = None  # 类变量，存储单例实例
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self):
-        self._nodes: Dict[str, TaskNode] = {}
-        self._current_file_path: Optional[Path] = None
+        if not hasattr(self, "_initialized"):  # 避免重复初始化
+            self._nodes: Dict[str, TaskNode] = {}
+            self._current_file_path: Optional[Path] = None
+            self.selected_node: Optional[TaskNode] = None
+            self._initialized = True  # 标记已初始化
 
     def load_from_file(self, file_path: Union[str, Path]) -> bool:
         """Load nodes from a JSON file"""
