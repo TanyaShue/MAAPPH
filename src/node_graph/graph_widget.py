@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 from PySide2.QtCore import Signal, Qt
 from PySide2.QtGui import QPixmap
@@ -13,9 +14,9 @@ from Qt.QtWidgets import (
 
 from NodeGraphQt import NodeGraph, BaseNode, NodeBaseWidget
 from src.utils.app_config import Config
-from src.utils.task_node import TaskNode
+from src.utils.task_node import TaskNode, TaskNodeManager
 
-
+# 自定义可折叠面板
 class SmoothCollapsiblePanel(QWidget):
     def __init__(self, title="Panel", parent=None):
         super().__init__(parent)
@@ -128,7 +129,7 @@ class SmoothCollapsiblePanel(QWidget):
         if self.parent():
             self.parent().adjustSize()
 
-
+# 自定义控件
 class CustomWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -193,7 +194,7 @@ class CustomWidget(QWidget):
         self.image_label.setText("暂无简略信息")
         self.image_label.setAlignment(Qt.AlignCenter)
 
-
+# 自定义节点
 class DynamicNodeWidgetWrapper(NodeBaseWidget):
     """
     Wrapper for a node with a dynamic number of input fields.
@@ -327,18 +328,23 @@ class MyNode(BaseNode):
                             output_port.connect_to(self.get_input('in'))
                             # self._connect_ports(self.get_input('in'), output_port)
 
+
 class TaskNodeGraph(QtWidgets.QWidget):
-    note_select =Signal(MyNode,str,dict)
+    node_select = Signal(object)  # Changed to more generic name
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.node_from_path = None
-        self.task_data = {}  # Initialize task_data here
+        self.node_graph = None
+        self.node_manager = TaskNodeManager()  # Add TaskNodeManager
+        self.setup_ui()
+        self.task_nodes = {}  # Dictionary to store graph nodes: {node_id: graph_node}
+
+    def setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
         self.node_graph = NodeGraph()
-        from pathlib import Path
-        BASE_PATH = Path(__file__).parent.resolve()
 
+        # Setup NodeGraph
+        BASE_PATH = Path(__file__).parent.resolve()
         hotkey_path = Path(BASE_PATH, 'hotkeys', 'hotkeys.json')
         self.node_graph.set_context_menu_from_file(hotkey_path, 'graph')
         self.node_graph.register_node(MyNode)
@@ -346,83 +352,105 @@ class TaskNodeGraph(QtWidgets.QWidget):
         self.node_graph.set_pipe_style(2)
         self.node_graph.set_grid_mode(False)
         self.node_graph.node_double_clicked.connect(self.on_node_double_clicked)
-        self.nodes = {}
-        # self.create_nodes()
 
         viewer = self.node_graph.viewer()
         layout.addWidget(viewer)
-    def on_node_double_clicked(self,node):
-        # print(node.name)
-        self.note_select.emit(node,self.node_from_path,self.nodes)
 
+    def on_node_double_clicked(self, graph_node):
+        # Get TaskNode from manager using graph node's id
+        task_node = self.node_manager.get_node_by_id(graph_node.node_id)
+        if task_node:
+            print(f"Double-clicked node: {task_node.NODE_NAME}")
+            self.node_select.emit(task_node)
 
-    def create_nodes_from_json(self,json_file_path):
-        self.nodes={} # 清空节点
-        # y_pos = 0
-        # x_pos =0
-        self.node_from_path = json_file_path
-        try:
-            with open(json_file_path, "r", encoding="utf-8") as file:
-                task_data = json.load(file)
-        except FileNotFoundError:
-            print(FileNotFoundError)
-        self.task_data = task_data
+    def load_from_file(self, file_path: str):
+        """Load nodes from file using TaskNodeManager"""
+        if self.node_manager.load_from_file(file_path):
+            self.refresh_graph()
+            return True
+        return False
+
+    def refresh_graph(self):
+        """Refresh the entire graph based on TaskNodeManager's nodes"""
+        # Clear existing graph
         self.node_graph.clear_session()
-        # 创建节点
-        for task_name, task_config in self.task_data.items():
-            node = self.node_graph.create_node('io.github.jchanvfx.MyNode', name=task_name)
-            node.note_data = task_config
-            # print(task_config)
-            # x_pos += 1000
-            # y_pos += 100
-            self.nodes[task_name] = node
-            node.update()
+        self.task_nodes.clear()
+
+        # Create nodes for each TaskNode in manager
+        for task_node in self.node_manager.get_all_nodes():
+            self.create_graph_node(task_node)
+
+        # Auto layout all nodes
         nodes = self.node_graph.all_nodes()
         self.node_graph.auto_layout_nodes(nodes=nodes, down_stream=False)
 
-    def add_node(self, node: TaskNode):
-        # Create a dictionary to store the node configuration
-        node_config = {}
+    def create_graph_node(self, task_node: TaskNode) -> MyNode:
+        """Create a graph node from a TaskNode"""
+        # Convert TaskNode to node configuration
+        node_config = task_node.to_dict()
+        node_config.pop('NODE_NAME', None)  # Remove NODE_NAME from config
 
-        # Get all fields from the dataclass
-        for field in node.__dataclass_fields__:
-            if (field != 'NODE_NAME' and
-                    field != 'signals'):
-                # Get value from the private field
-                value = getattr(node, f"_{field}")
-                if value is not None:  # Only include non-None values
-                    node_config[field] = value
+        # Create graph node
+        graph_node = self.node_graph.create_node(
+            'io.github.jchanvfx.MyNode',
+            name=task_node.NODE_NAME
+        )
+        graph_node.node_id = task_node.id  # Set the ID to match TaskNode
+        graph_node.note_data = node_config
 
-        # Add the node configuration to task_data
-        self.task_data[node.NODE_NAME] = node_config
-        if node.NODE_NAME in self.nodes:
+        # Store in nodes dictionary
+        self.task_nodes[task_node.id] = graph_node
+
+        graph_node.update()
+        return graph_node
+
+    def update_node(self, task_node: TaskNode):
+        """Update or create a node in the graph based on a TaskNode"""
+        if task_node.id in self.task_nodes:
             # Update existing node
-            existing_node = self.nodes[node.NODE_NAME]
-            existing_node.note_data = node_config
+            graph_node = self.task_nodes[task_node.id]
+            graph_node.name = task_node.NODE_NAME
+            graph_node.note_data = task_node.to_dict()
+            graph_node.note_data.pop('NODE_NAME', None)
         else:
-        # Create a new node in the graph
-            new_node = self.node_graph.create_node('io.github.jchanvfx.MyNode',
-                                                   name=node.NODE_NAME)
-            new_node.note_data = node_config
+            # Create new node
+            self.create_graph_node(task_node)
 
-            # Add to nodes dictionary
-            self.nodes[node.NODE_NAME] = new_node
-        self.save_nodes_to_json()
-        self.nodes[node.NODE_NAME].update()
+        # Save changes
+        self.save_to_file()
 
-    def save_nodes_to_json(self):
-        try:
-            if self.node_from_path is None:
-                self.node_from_path = "nodes.json"
-            # 将节点数据保存到字典
-            nodes_data = {}
-            for node_name, node in self.nodes.items():
-                nodes_data[node_name] = node.note_data
+    def save_to_file(self, file_path: str = None):
+        """Save nodes using TaskNodeManager"""
+        # Update positions in TaskNodes before saving
+        for node_id, graph_node in self.task_nodes.items():
+            task_node = self.node_manager.get_node_by_id(node_id)
+            if task_node:
+                # You might want to add position storage in TaskNode class
+                pos = graph_node.pos()
+                # Add position to node_data if needed
+                graph_node.note_data['position'] = {'x': pos[0], 'y': pos[1]}
 
-            # 将字典写入到 JSON 文件
-            with open(self.node_from_path, "w", encoding="utf-8") as file:
-                json.dump(nodes_data, file, ensure_ascii=False, indent=4)
+        return self.node_manager.save_to_file(file_path)
 
-            print(f"Nodes successfully saved to {self.node_from_path}")
-        except Exception as e:
-            print(f"An error occurred while saving nodes to JSON: {e}")
+    def add_node(self, task_node: TaskNode):
+        """Add or update a node in both manager and graph"""
+        # Add/update in manager
+        self.node_manager.add_node(task_node)
+
+        # Update graph
+        self.update_node(task_node)
+
+    def remove_node(self, node_id: str):
+        """Remove a node from both manager and graph"""
+        # Remove from manager
+        self.node_manager.remove_node(node_id)
+
+        # Remove from graph
+        if node_id in self.task_nodes:
+            graph_node = self.task_nodes[node_id]
+            self.node_graph.remove_node(graph_node)
+            del self.task_nodes[node_id]
+
+    def get_current_file_path(self):
+        """Get current file path from manager"""
+        return self.node_manager.get_current_file_path()

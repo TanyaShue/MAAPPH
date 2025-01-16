@@ -5,9 +5,8 @@ import uuid
 import json
 from pathlib import Path
 
-
 class TaskNodeSignals(QObject):
-    property_changed = Signal(str, object)  # Signal for property change
+    property_changed = Signal(str, object)
 
 
 @dataclass
@@ -35,16 +34,19 @@ class TaskNode:
     pre_wait_freezes: Optional[int] = None
     post_wait_freezes: Optional[int] = None
 
-    signals: TaskNodeSignals = field(default_factory=TaskNodeSignals)
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    def __init__(self):
+        self.signals = TaskNodeSignals()
+        self.id = str(uuid.uuid4())
+        self._init_properties()
 
-    def __post_init__(self):
+    def _init_properties(self):
+        """Initialize all properties with their getters and setters"""
         for field_name in self.__dataclass_fields__:
             if field_name in ["signals", "id"]:
                 continue
 
             private_field = f"_{field_name}"
-            setattr(self, private_field, getattr(self, field_name))
+            setattr(self, private_field, None)
 
             def getter(self, field=field_name):
                 return getattr(self, f"_{field}")
@@ -55,6 +57,17 @@ class TaskNode:
 
             setattr(self.__class__, field_name, property(getter, setter))
 
+    @classmethod
+    def create_empty(cls) -> 'TaskNode':
+        """Create an empty TaskNode instance"""
+        return cls()
+
+    def update_from_dict(self, data: dict):
+        """Update node properties from dictionary"""
+        for field_name, value in data.items():
+            if field_name in self.__dataclass_fields__ and field_name not in ["signals", "id"]:
+                setattr(self, field_name, value)
+
     def to_dict(self) -> dict:
         """Convert TaskNode to dictionary for serialization"""
         result = {}
@@ -62,20 +75,23 @@ class TaskNode:
             if field_name in ["signals", "id"]:
                 continue
             value = getattr(self, field_name)
-            if value is not None:  # Only include non-None values
+            if value is not None:
                 result[field_name] = value
         return result
 
     @classmethod
     def from_dict(cls, name: str, data: dict) -> 'TaskNode':
         """Create TaskNode from dictionary"""
-        # Create a copy of the data to avoid modifying the input
+        node = cls.create_empty()
         node_data = data.copy()
-        # Set the NODE_NAME from the dictionary key
         node_data['NODE_NAME'] = name
+        node_data.pop('signals', None)
+
         # Filter out unknown fields
         valid_fields = {k: v for k, v in node_data.items() if k in cls.__dataclass_fields__}
-        return cls(**valid_fields)
+        node.update_from_dict(valid_fields)
+        return node
+
 
 class TaskNodeManager:
     def __init__(self):
@@ -83,10 +99,7 @@ class TaskNodeManager:
         self._current_file_path: Optional[Path] = None
 
     def load_from_file(self, file_path: Union[str, Path]) -> bool:
-        """
-        Load nodes from a JSON file. Clears existing nodes before loading.
-        Returns True if successful, False otherwise.
-        """
+        """Load nodes from a JSON file"""
         try:
             file_path = Path(file_path)
             if not file_path.exists():
@@ -98,15 +111,19 @@ class TaskNodeManager:
             if not isinstance(data, dict):
                 raise ValueError("Invalid file format: expected dictionary")
 
-            # Clear existing nodes
             self.clear_nodes()
 
-            # Load new nodes
             for node_name, node_data in data.items():
-                node = TaskNode.from_dict(node_name, node_data)
-                self.add_node(node)
+                try:
+                    node = TaskNode.create_empty()
+                    node_data['NODE_NAME'] = node_name
+                    node.update_from_dict(node_data)
+                    self.add_node(node)
+                    print(f"Loaded node: {node_name}, node id: {node.id}")
+                except Exception as e:
+                    print(f"Error loading node {node_name}: {e}")
+                    continue
 
-            # Save the current file path
             self._current_file_path = file_path
             return True
 
@@ -115,31 +132,24 @@ class TaskNodeManager:
             return False
 
     def save_to_file(self, file_path: Union[str, Path] = None) -> bool:
-        """
-        Save current nodes to a JSON file.
-        If file_path is None, saves to the last loaded/saved file path.
-        Returns True if successful, False otherwise.
-        """
+        """Save nodes to a JSON file"""
         try:
-            # Use provided path or current path
             if file_path is None:
                 if self._current_file_path is None:
                     raise ValueError("No file path specified and no previous file path exists")
                 file_path = self._current_file_path
             else:
                 file_path = Path(file_path)
-                self._current_file_path = file_path  # Update current path when saving to new location
+                self._current_file_path = file_path
 
-            # Create directory if it doesn't exist
             file_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Convert nodes to dictionary format
             data = {}
             for node in self._nodes.values():
-                if node.NODE_NAME:  # Only save nodes with a name
-                    data[node.NODE_NAME] = node.to_dict()
-                    # Remove NODE_NAME from the node data since it's now the key
-                    data[node.NODE_NAME].pop('NODE_NAME', None)
+                if node.NODE_NAME:
+                    node_data = node.to_dict()
+                    node_data.pop('NODE_NAME', None)
+                    data[node.NODE_NAME] = node_data
 
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
