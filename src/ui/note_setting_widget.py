@@ -1,10 +1,10 @@
-import os
+import copy
+from pathlib import Path
 from typing import List, Optional, Union
 from PySide2.QtCore import QPoint, Signal, Qt
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
                                QCheckBox, QSpinBox, QLineEdit, QTextEdit, QScrollArea,
                                QDoubleSpinBox, QFrame, QPushButton)
-from src.node_graph.graph_widget import MyNode
 from src.utils.maa_controller import MaaController
 from src.utils.task_node import TaskNode, TaskNodeManager
 
@@ -14,7 +14,6 @@ class NoteSettingWidget(QWidget):
     def __init__(self, settings: Optional[TaskNode] = None):
         super().__init__()
         self.task_node_manager = TaskNodeManager()
-        self.nodes = None
         self.node_file_name = None
         self.node = None
         self.main_layout = None
@@ -252,10 +251,14 @@ class NoteSettingWidget(QWidget):
         section_layout.addLayout(right_container)
         return section_layout
 
-    def update_section(self, section_name: str, values: list[str]):
-        """Create or update a section with the given values"""
+    def update_section(self, section_name: str, values: list[str] | str):
+        """Create or update a section with the given values."""
         if section_name not in self.sections:
             return
+
+        # 如果 values 是字符串，将其转换为单元素列表
+        if isinstance(values, str):
+            values = [values]
 
         # Clear existing rows
         self.clear_section(section_name)
@@ -378,8 +381,15 @@ class NoteSettingWidget(QWidget):
         self.node_file_name = self.task_node_manager.get_current_file_path()
         self.node = self.task_node_manager.selected_node
         try:
-            # Map note_data to TaskNode attributess
-            self.settings=self.node
+            # Create a new settings object
+            self.settings = type(self.node)()  # 创建同类型的新对象
+
+            # Copy specific attributes
+            for attr in self.node.__dict__:
+                if attr == 'signals':  # 特殊处理signals属性
+                    self.settings.signals = self.node.signals
+                else:
+                    setattr(self.settings, attr, copy.deepcopy(getattr(self.node, attr)))
         except Exception as e:
             print(f"Error loading settings from node: {e}")
         self.update_ui_from_settings(self.settings)
@@ -455,6 +465,7 @@ class NoteSettingWidget(QWidget):
         # 更新sections
         if hasattr(settings, 'next'):
             self.update_section('next', settings.next or ["",""])
+            print(settings.next)
         if hasattr(settings, 'interrupt'):
             self.update_section('interrupt', settings.interrupt or ["",""])
         if hasattr(settings, 'on_error'):
@@ -585,12 +596,15 @@ class NoteSettingWidget(QWidget):
 
         :return: 唯一的节点名称。
         """
-        new_node_name = f"{self.node_file_name}_step_1"
-        existing_names = {node for node in self.nodes}  # 使用集合提高查找效率
+        # 提取文件名并去掉 .json 后缀
+        base_name = Path(self.node_file_name).stem
 
         step = 1
-        while new_node_name in existing_names:
-            step += 1
-            new_node_name = f"{self.node_file_name}_step_{step}"
+        while True:
+            new_node_name = f"{base_name}_step_{step}"
 
-        return new_node_name
+            # 假设 get_node_by_name 是方法，检查节点名称是否已存在
+            if self.task_node_manager.get_node_by_name(new_node_name) is None:
+                return new_node_name
+
+            step += 1

@@ -359,10 +359,7 @@ class TaskNodeGraph(QtWidgets.QWidget):
     def on_node_double_clicked(self, graph_node):
         # Get TaskNode from manager using graph node's id
         self.node_manager.selected_node = self.node_manager.get_node_by_id(graph_node.node_id)
-        print(self.node_manager.selected_node)
         self.node_select.emit()
-        print(f"Double-clicked node: {graph_node.NODE_NAME}")
-
 
     def load_from_file(self, file_path: str):
         """Load nodes from file using TaskNodeManager"""
@@ -389,9 +386,9 @@ class TaskNodeGraph(QtWidgets.QWidget):
         """Create a graph node from a TaskNode"""
         # Convert TaskNode to node configuration
         node_config = task_node.to_dict()
-        node_config.pop('NODE_NAME', None)  # Remove NODE_NAME from config
-
+        # node_config.pop('NODE_NAME', None)  # Remove NODE_NAME from config
         # Create graph node
+        print(task_node.NODE_NAME)
         graph_node = self.node_graph.create_node(
             'io.github.jchanvfx.MyNode',
             name=task_node.NODE_NAME
@@ -410,13 +407,11 @@ class TaskNodeGraph(QtWidgets.QWidget):
         if task_node.id in self.task_nodes:
             # Update existing node
             graph_node = self.task_nodes[task_node.id]
-            graph_node.name = task_node.NODE_NAME
+            graph_node.NODE_NAME = task_node.NODE_NAME
             graph_node.note_data = task_node.to_dict()
-            graph_node.note_data.pop('NODE_NAME', None)
         else:
             # Create new node
             self.create_graph_node(task_node)
-
         # Save changes
         self.save_to_file()
 

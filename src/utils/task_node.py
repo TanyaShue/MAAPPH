@@ -127,7 +127,6 @@ class TaskNodeManager:
                     node_data['NODE_NAME'] = node_name
                     node.update_from_dict(node_data)
                     self.add_node(node)
-                    print(f"Loaded node: {node_name}, node id: {node.id}")
                 except Exception as e:
                     print(f"Error loading node {node_name}: {e}")
                     continue
