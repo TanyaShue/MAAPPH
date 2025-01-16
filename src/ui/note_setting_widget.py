@@ -568,13 +568,22 @@ class NoteSettingWidget(QWidget):
 
                 self.expected_edit.setPlaceholderText("识别失败")
 
-    def update_template_path(self, path):
-        self.settings.recognition="FeatureMatch"
-        if self.settings.template is None:
-            self.settings.template = [f"{path}"]
-        else:
-            self.settings.template.append(path)
-        # print(self.settings.template)
+    def update_template_path(self, path: str):
+        """
+        更新 template 路径，确保 template 始终是 list[str] 类型。
+        """
+        self.settings.recognition = "FeatureMatch"
+
+        # 确保 template 是 list[str]
+        if isinstance(self.settings.template, str):
+            self.settings.template = [self.settings.template]
+        elif self.settings.template is None:
+            self.settings.template = []
+
+        # 添加新的路径到 template 列表
+        self.settings.template.append(path)
+
+        # 更新 UI
         self.update_ui_from_settings(self.settings)
 
     def save_settings_and_next(self):
@@ -604,7 +613,7 @@ class NoteSettingWidget(QWidget):
             setattr(self.settings, attribute, [new_node_name])
         else:
             attr_list.append(new_node_name)
-        print(attr_list)
+        # print(attr_list)
 
         self.save_node()
         self.settings = new_setting
