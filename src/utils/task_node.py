@@ -15,6 +15,8 @@ class TaskNode:
     NODE_NAME: Optional[str] = None
     recognition: Optional[str] = None
     action: Optional[str] = None
+    custom_action: Optional[str] = None
+    custom_action_param: Optional[str] = None
     enabled: Optional[bool] = None
     focus: Optional[bool] = None
     inverse: Optional[bool] = None
@@ -34,6 +36,12 @@ class TaskNode:
     post_delay: Optional[int] = None
     pre_wait_freezes: Optional[int] = None
     post_wait_freezes: Optional[int] = None
+    key: Optional[int] = None
+    InputText: Optional[str] = None
+    StartApp: Optional[str] = None
+    StopApp: Optional[str] = None
+    Command: Optional[str] = None
+    package: Optional[str] = None
 
     def __init__(self):
         self.signals = TaskNodeSignals()
@@ -106,6 +114,7 @@ class TaskNode:
         valid_fields = {k: v for k, v in node_data.items() if k in cls.__dataclass_fields__}
         node.update_from_dict(valid_fields)
         return node
+
 class TaskNodeManager:
     _instance = None  # 类变量，存储单例实例
 
