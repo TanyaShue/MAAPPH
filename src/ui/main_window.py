@@ -4,10 +4,11 @@ from PySide2.QtCore import Qt
 from PySide2.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QSplitter
 )
+
 from src.node_graph.graph_widget import TaskNodeGraph
 from src.ui.data_display import DataDisplayWidget
-from src.ui.setting_widget import SettingWidget
 from src.ui.note_setting_widget import NoteSettingWidget
+from src.ui.setting_widget import SettingWidget
 from src.utils.app_config import AdbConfig
 from src.utils.maa_controller import MaaController
 

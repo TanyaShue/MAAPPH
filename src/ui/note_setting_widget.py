@@ -1,10 +1,11 @@
-import copy
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional
+
 from PySide2.QtCore import QPoint, Signal, Qt
 from PySide2.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
-                               QCheckBox, QSpinBox, QLineEdit, QTextEdit, QScrollArea,
+                               QCheckBox, QSpinBox, QLineEdit, QScrollArea,
                                QDoubleSpinBox, QFrame, QPushButton)
+
 from src.utils.maa_controller import MaaController
 from src.utils.task_node import TaskNode, TaskNodeManager
 
@@ -381,7 +382,7 @@ class NoteSettingWidget(QWidget):
         try:
             self.node_file_name = self.task_node_manager.get_current_file_path()
             self.node = self.task_node_manager.selected_node
-            # 创建新的设置对象
+            # 创建新设置对象
             self.settings = type(self.node)()
 
             # 使用copy_from方法复制属性

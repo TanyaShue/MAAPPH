@@ -1,17 +1,17 @@
 import os
-
 from datetime import datetime
 from functools import partial
-from PySide2.QtGui import QPixmap, Qt, QPainter, QColor, QPen
+
+from PySide2.QtCore import QPoint, QRect, Signal, Qt
+from PySide2.QtGui import QPixmap, QPainter, QColor, QPen
+from PySide2.QtGui import Qt
 from PySide2.QtWidgets import (
-    QHBoxLayout, QPushButton
+    QHBoxLayout
 )
+from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QMenu, QPushButton
 
 from src.utils.app_config import Config
 from src.utils.maa_controller import MaaController
-from PySide2.QtCore import QPoint, QRect, Signal, Qt
-from PySide2.QtGui import QPixmap, QPainter, QColor, QPen
-from PySide2.QtWidgets import QWidget, QVBoxLayout, QLabel, QMenu, QPushButton
 
 
 class InfoPanel(QWidget):

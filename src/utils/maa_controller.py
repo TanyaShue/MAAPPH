@@ -1,6 +1,6 @@
 import subprocess
-
 from typing import Optional, Dict, Any
+
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QImage
 from maa.controller import AdbController
@@ -8,6 +8,7 @@ from maa.custom_recognition import CustomRecognition
 from maa.resource import Resource
 from maa.tasker import Tasker
 from maa.toolkit import Toolkit
+
 from src.utils.app_config import AdbConfig
 
 

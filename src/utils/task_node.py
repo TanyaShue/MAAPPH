@@ -1,11 +1,12 @@
 import copy
+import json
+import uuid
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional, List, Union, Dict
 
 from PySide2.QtCore import QObject, Signal
-from typing import Optional, List, Union, Dict
-from dataclasses import dataclass, field
-import uuid
-import json
-from pathlib import Path
+
 
 class TaskNodeSignals(QObject):
     property_changed = Signal(str, object)

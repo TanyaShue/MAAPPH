@@ -1,4 +1,3 @@
-import json
 import os
 from pathlib import Path
 
@@ -8,13 +7,13 @@ from PySide2.QtWidgets import QSizePolicy
 from Qt import QtWidgets
 from Qt.QtCore import QPropertyAnimation, QEasingCurve
 from Qt.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout,
-    QComboBox
+    QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
 )
 
 from NodeGraphQt import NodeGraph, BaseNode, NodeBaseWidget
 from src.utils.app_config import Config
 from src.utils.task_node import TaskNode, TaskNodeManager
+
 
 # 自定义可折叠面板
 class SmoothCollapsiblePanel(QWidget):
