@@ -58,6 +58,7 @@ class CoordinateLabel(QLabel):
     target_selected = Signal(QPoint, QPoint)
     recognition_from_roi_signal = Signal(QPoint, QPoint)
     update_screenshot_path = Signal(str)
+    clicked_display = Signal(QPoint)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.start_pos = None
@@ -67,6 +68,7 @@ class CoordinateLabel(QLabel):
         self.is_drawing = False
         self.original_image = None
         self.cropped_image = None
+        self.maa_controller = MaaController()
         self.last_screenshot_path = None
 
         # 创建水平布局来容纳主显示区和信息面板
@@ -122,6 +124,13 @@ class CoordinateLabel(QLabel):
             self.end_pos = self._convert_coordinates(event.pos())
             self.update()
         super().mouseMoveEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            if self.start_pos == self.end_pos:
+                # self.maa_controller.click(self.start_pos.x(), self.start_pos.y())
+                self.clicked_display.emit(self.start_pos)
+        super().mouseDoubleClickEvent(event)
 
     def set_roi(self):
         """打印ROI坐标"""

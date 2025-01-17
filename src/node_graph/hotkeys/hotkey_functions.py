@@ -19,6 +19,7 @@ def reset_pos(graph):
     """
     Reset node graph position.
     """
+    node=graph.selected_nodes()
     nodes=graph.all_nodes()
     for node in nodes:
         print(node.pos())

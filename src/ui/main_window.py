@@ -1,6 +1,7 @@
 import asyncio
+import time
 
-from PySide2.QtCore import Qt
+from PySide2.QtCore import Qt, QPoint
 from PySide2.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QSplitter
 )
@@ -85,6 +86,7 @@ class MainWindow(QMainWindow):
         data_display.screen_label.info_panel.save_and_edit_next_signal.connect(note_widget.save_settings_and_next)
         data_display.screen_label.info_panel.save_and_edit_interrupt_signal.connect(note_widget.save_settings_and_interrupt)
         data_display.screen_label.info_panel.save_and_edit_on_error_signal.connect(note_widget.save_settings_and_on_error)
+        data_display.screen_label.clicked_display.connect(self.click_display)
 
     async def async_initialize_controller(self, adb_config: AdbConfig, user_path: str = "./"):
 
@@ -108,6 +110,14 @@ class MainWindow(QMainWindow):
         if successes:
             print("MAA资源初始化成功")
 
+    async def async_clicked_display(self,point:QPoint):
+        successes = await asyncio.to_thread(
+            self.MaaController.click,
+            point.x(),
+            point.y(),
+        )
+        if successes:
+            print("点击屏幕成功")
     def initialize_controller(self, adb_config: AdbConfig, user_path: str = "./"):
         asyncio.create_task(self.async_initialize_controller(adb_config, user_path))
 
@@ -151,4 +161,8 @@ class MainWindow(QMainWindow):
             }
         """
         splitter.setStyleSheet(stylesheet)
+
+    def click_display(self,point:QPoint):
+        asyncio.create_task(self.async_clicked_display(point))
+        self.data_display.refresh_screen()
 

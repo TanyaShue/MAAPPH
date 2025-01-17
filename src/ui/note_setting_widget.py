@@ -54,7 +54,6 @@ class NoteSettingWidget(QWidget):
             ("基础配置", self.create_basic_group),
             ("算法配置", self.create_algo_group),
             ("目标配置", self.create_target_group),
-            # ("动作配置", self.create_action_group),
             ("任务流配置", self.create_flow_group),
             ("时间配置", self.create_timing_group)
         ]
