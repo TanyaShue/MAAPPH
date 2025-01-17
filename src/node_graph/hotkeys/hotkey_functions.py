@@ -1,4 +1,6 @@
 #!/usr/bin/python
+from src.utils.task_node import TaskNode, TaskNodeManager
+
 
 # ------------------------------------------------------------------------------
 # menu command functions
@@ -7,7 +9,11 @@ def add_base_node(graph):
     """
     Add a base node to the node graph.
     """
-    graph.create_node('io.github.jchanvfx.MyNode')
+    task_node=TaskNode()
+    node=graph.create_node('io.github.jchanvfx.MyNode')
+    node.node_id=task_node.id
+    node.note_data=task_node.to_dict()
+    TaskNodeManager().add_node(task_node)
     # graph.add_node('BaseNode')
 def reset_pos(graph):
     """

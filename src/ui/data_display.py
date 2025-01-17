@@ -157,10 +157,6 @@ class CoordinateLabel(QLabel):
         if not self.original_image or not self.start_pos or not self.end_pos:
             return None
 
-        # Create img directory if it doesn't exist
-        if not os.path.exists('img'):
-            os.makedirs('img')
-
         # Convert coordinates to original image scale
         orig_width = self.original_image.width()
         orig_height = self.original_image.height()
