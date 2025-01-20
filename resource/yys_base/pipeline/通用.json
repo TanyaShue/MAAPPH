@@ -7,17 +7,17 @@
   "庭院_点击探索": {
     "recognition": "TemplateMatch",
     "action": "Click",
-    "roi": [
-      23,
-      98,
-      1144,
-      249
-    ],
     "template": [
       "庭院/庭院_探索_望月幽庭.png",
       "庭院/庭院_探索_织梦莲庭.png",
       "庭院/庭院_探索_枫色秋庭.png",
       "庭院/庭院_探索_初语谧景.png"
+    ],
+    "roi": [
+      23,
+      98,
+      1144,
+      249
     ],
     "post_delay": 2000
   },
@@ -33,30 +33,34 @@
     ]
   },
   "识别庭院特征": {
-    "recognition": "FeatureMatch",
-    "roi": "[23, 98, 1144, 249]",
+    "recognition": "TemplateMatch",
     "template": [
       "庭院/庭院_探索_望月幽庭.png",
       "庭院/庭院_探索_织梦莲庭.png",
       "庭院/庭院_探索_枫色秋庭.png",
-      "庭院/庭院_探索_初语谧景.png",
-      "template\\screenshot_20250117_101429.png"
+      "庭院/庭院_探索_初语谧景.png"
+    ],
+    "roi": [
+      23,
+      98,
+      1144,
+      249
     ],
     "post_delay": 2000
   },
   "识别探索特征": {
     "recognition": "TemplateMatch",
-    "roi": [
-      9,
-      575,
-      1137,
-      144
-    ],
     "template": [
       "探索/探索_六道之门.png",
       "探索/探索_地域鬼王.png",
       "探索/探索_式神委派.png",
       "探索/探索_御魂.png"
+    ],
+    "roi": [
+      9,
+      575,
+      1137,
+      144
     ],
     "post_delay": 1000
   },
@@ -134,31 +138,32 @@
   },
   "打开底部菜单_匹配": {
     "recognition": "FeatureMatch",
-    "action": "Click",
-    "roi": [
-      1063,
-      528,
-      216,
-      191
-    ],
     "template": [
       "庭院_卷轴.png",
       "庭院/庭院_卷轴_鬼金羊.png",
       "庭院/庭院_卷轴_不见岳.png"
     ],
-    "post_delay": 1000
+    "action": "Click",
+    "post_delay": 1000,
+    "roi": [
+      1063,
+      528,
+      216,
+      191
+    ]
   },
   "点击底部菜单位置": {
     "action": "Click",
+    "post_delay": 1000,
     "target": [
       1177,
       578,
       63,
       92
-    ],
-    "post_delay": 1000
+    ]
   },
   "左滑一下屏幕": {
+    "is_sub": true,
     "action": "Custom",
     "custom_action": "RandomSwipe",
     "custom_action_param": {
