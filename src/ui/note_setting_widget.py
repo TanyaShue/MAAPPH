@@ -481,11 +481,13 @@ class NoteSettingWidget(QWidget):
     def on_interrupt_section_changed(self):
         """当interrupt section变化时更新settings"""
         values = self.get_section_values('interrupt')
+        print(f"values_interrupt: {values}")
         setattr(self.settings, 'interrupt', values)
 
-    def on_error_section_changed(self):
+    def on_on_error_section_changed(self):
         """当error section变化时更新settings"""
         values = self.get_section_values('on_error')
+        print(f"values_on_error: {values}")
         setattr(self.settings, 'on_error', values)
 
     def on_template_section_changed(self):

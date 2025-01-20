@@ -99,9 +99,9 @@ class TaskNode:
             if field_name in ["signals", "id"]:
                 continue
             value = getattr(self, field_name)
-            if value is not None:
+            if value is not None and value!=""or value!=[]:
                 # Check and convert types for 'roi' and 'roi_offset'
-                if field_name in ["roi", "roi_offset"] and isinstance(value, str):
+                if field_name in ["roi", "roi_offset"] and isinstance(value, str) and value.strip() != "" and value is not None:
                     try:
                         # Attempt to parse the string as JSON
                         parsed_value = json.loads(value)

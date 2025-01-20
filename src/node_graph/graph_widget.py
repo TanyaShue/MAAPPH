@@ -318,10 +318,10 @@ class MyNode(BaseNode):
             for field in fields:
                 if field in node.note_data:
                     target_list = node.note_data[field]
-                    if isinstance(target_list, str):
+                    if isinstance(target_list, str) and target_list!= [] and target_list is not None:
                         target_list = [target_list]
 
-                    if current_node_name in target_list:
+                    if target_list is not None and current_node_name in target_list:
                         output_port = node.get_output(field)
                         if output_port:
                             output_port.connect_to(self.get_input('in'))
