@@ -8,5 +8,5 @@
     },
     "log_level": "INFO",
     "maa_user_path": "./",
-    "maa_resource_path": "D:\\DeveProject\\Python\\MAAPH\\resource\\yys_base"
+    "maa_resource_path": "resource/yys_base"
 }

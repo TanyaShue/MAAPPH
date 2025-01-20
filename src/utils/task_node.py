@@ -100,6 +100,18 @@ class TaskNode:
                 continue
             value = getattr(self, field_name)
             if value is not None:
+                # Check and convert types for 'roi' and 'roi_offset'
+                if field_name in ["roi", "roi_offset"] and isinstance(value, str):
+                    try:
+                        # Attempt to parse the string as JSON
+                        parsed_value = json.loads(value)
+                        if isinstance(parsed_value, list) and all(isinstance(x, int) for x in parsed_value):
+                            value = parsed_value
+                        else:
+                            raise ValueError
+                    except (json.JSONDecodeError, ValueError):
+                        raise ValueError(
+                            f"Invalid format for {field_name}: {value}. Expected a JSON-style list of integers.")
                 result[field_name] = value
         return result
 
