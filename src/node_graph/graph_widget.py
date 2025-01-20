@@ -414,16 +414,6 @@ class TaskNodeGraph(QtWidgets.QWidget):
         self.save_to_file()
 
     def save_to_file(self, file_path: str = None):
-        """Save nodes using TaskNodeManager"""
-        # Update positions in TaskNodes before saving
-        for node_id, graph_node in self.task_nodes.items():
-            task_node = self.node_manager.get_node_by_id(node_id)
-            if task_node:
-                # You might want to add position storage in TaskNode class
-                pos = graph_node.pos()
-                # Add position to node_data if needed
-                graph_node.note_data['position'] = {'x': pos[0], 'y': pos[1]}
-
         return self.node_manager.save_to_file(file_path)
 
     def add_node(self, task_node: TaskNode):

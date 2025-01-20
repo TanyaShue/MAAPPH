@@ -15,14 +15,88 @@ def add_base_node(graph):
     node.note_data=task_node.to_dict()
     TaskNodeManager().add_node(task_node)
     # graph.add_node('BaseNode')
+
+
 def reset_pos(graph):
     """
-    Reset node graph position.
+    Reset node graph position using NetworkX's neato layout with proper spacing.
+
+    Args:
+        graph: The graph object containing nodes and their connections
+
+    Note:
+        Requires networkx and pygraphviz to be installed:
+        pip install networkx pygraphviz
     """
-    node=graph.selected_nodes()
-    nodes=graph.all_nodes()
+    import networkx as nx
+
+    # 创建 NetworkX 有向图
+    nx_graph = nx.DiGraph()
+
+    # 获取所有节点
+    nodes = graph.all_nodes()
+
+    # 添加边到 NetworkX 图中
     for node in nodes:
-        print(node.pos())
+        # 获取输入和输出连接
+        input_nodes = node.connected_input_nodes()
+        output_nodes = node.connected_output_nodes()
+
+        # 添加输入边
+        for input_node in input_nodes:
+            nx_graph.add_edge(input_node.name, node.name)
+
+        # 添加输出边
+        for output_node in output_nodes:
+            nx_graph.add_edge(node.name, output_node.name)
+
+    try:
+        # 使用 neato 布局算法
+        pos = nx.nx_agraph.graphviz_layout(nx_graph, prog="neato")
+
+        # 缩放位置以确保适当的间距
+        # 使用 10 作为缩放因子,可以根据需要调整
+        scaled_pos = {
+            node_name: (x * 10, -y * 10)  # 反转 y 轴以获得更好的可视化效果
+            for node_name, (x, y) in pos.items()
+        }
+
+        # 将计算出的位置应用到图中的节点
+        for node in nodes:
+            if node.name in scaled_pos:
+                x, y = scaled_pos[node.name]
+                success = node.set_pos(x, y)
+                if success:
+                    print(f"Node {node.name} position set to ({x}, {y})")
+                else:
+                    print(f"Failed to set position for node {node.name}")
+
+    except Exception as e:
+        print(f"Error during layout calculation: {str(e)}")
+        # 如果 graphviz 布局失败,回退到简单的圆形布局
+        try:
+            pos = nx.circular_layout(nx_graph)
+            scaled_pos = {
+                node_name: (x * 5, y * 5)  # 使用更大的缩放因子确保节点间距
+                for node_name, (x, y) in pos.items()
+            }
+
+            for node in nodes:
+                if node.name in scaled_pos:
+                    x, y = scaled_pos[node.name]
+                    node.set_pos(x, y)
+                    print(f"Node {node.name} position set to ({x}, {y}) using fallback layout")
+
+        except Exception as e:
+            print(f"Fallback layout also failed: {str(e)}")
+            return False
+
+    return True
+
+
+# Example usage with a hypothetical graph object:
+# reset_pos(your_graph)
+
 
 def zoom_in(graph):
     """
