@@ -1,0 +1,89 @@
+{
+  "自动秘闻": {
+    "action": "Custom",
+    "custom_action": "TaskList",
+    "custom_action_param": {
+      "task_list": [
+        "点击探索",
+        "开始自动秘闻"
+      ]
+    }
+  },
+  "开始自动秘闻": {
+    "recognition": "TemplateMatch",
+    "action": "Click",
+    "roi": [
+      32,
+      603,
+      1107,
+      117
+    ],
+    "template": [
+      "template\\screenshot_20250120_113855.png"
+    ],
+    "next": [
+      "自动秘闻_step_1"
+    ]
+  },
+  "自动秘闻_step_1": {
+    "recognition": "DirectHit",
+    "action": "Click",
+    "target": "[179, 599, 833, 95]",
+    "next": [
+      "自动秘闻_step_2"
+    ],
+    "on_error": [
+      "自动秘闻_step_3"
+    ],
+    "rate_limit": 1000,
+    "timeout": 1000
+  },
+  "自动秘闻_step_2": {
+    "recognition": "TemplateMatch",
+    "action": "DoNothing",
+    "roi": [
+      131,
+      158,
+      331,
+      105
+    ],
+    "template": [
+      "template\\screenshot_20250120_114623.png"
+    ],
+    "timeout": 1000
+  },
+  "自动秘闻_step_3": {
+    "recognition": "FeatureMatch",
+    "action": "Click",
+    "roi": [
+      1128,
+      574,
+      133,
+      128
+    ],
+    "target": "[1161, 620, 70, 45]",
+    "template": [
+      "template\\screenshot_20250120_132257.png"
+    ],
+    "on_error": [
+      "自动秘闻_step_4"
+    ],
+    "timeout": 20000
+  },
+  "自动秘闻_step_4": {
+    "recognition": "OCR",
+    "action": "Click",
+    "roi": [
+      428,
+      129,
+      112,
+      503
+    ],
+    "threshold": 0.7,
+    "expected": "未通关",
+    "next": [
+      "自动秘闻_step_5"
+    ],
+    "timeout": 20000
+  }
+}
