@@ -96,18 +96,38 @@ class TaskNode:
             if field_name in self.__dataclass_fields__ and field_name not in ["signals", "id"]:
                 setattr(self, field_name, value)
 
-    def to_dict(self) -> Dict[str, Any]:
-        """将 TaskNode 转换为字典，用于序列化."""
-        result: Dict[str, Any] = {}
+    def to_dict(self) -> dict:
+        """Convert TaskNode to dictionary for serialization"""
+        result = {}
         for field_name in self.__dataclass_fields__:
             if field_name in ["signals", "id"]:
                 continue
             value = getattr(self, field_name)
-            if value is not None:  # 如果值为 None 则不保存该属性
-                # 检查和转换 'roi' 和 'roi_offset' 类型
-                if field_name in ["roi", "roi_offset"] and isinstance(value, str) and value.strip() != "" and value is not None:
+            if value is not None:
+                if field_name == 'target':
+                    if isinstance(value, list) and all(isinstance(x, int) for x in value):
+                        # 情况 1: 已经是 List[int]，直接保存
+                        result[field_name] = value
+                    elif isinstance(value, str):
+                        try:
+                            # 情况 2: 是字符串，尝试解析为 List[int]
+                            parsed_value = json.loads(value)
+                            if isinstance(parsed_value, list) and all(isinstance(x, int) for x in parsed_value):
+                                result[field_name] = parsed_value  # 解析成功，保存为 List[int]
+                            else:
+                                result[field_name] = value  # 解析后不是 List[int]，保存为原始字符串
+                        except (json.JSONDecodeError, ValueError):
+                            # 解析 JSON 失败，保存为原始字符串
+                            result[field_name] = value
+                    else:
+                        # 其他情况 (理论上 Union[str, List[int]] 之外的情况),  保存为字符串，或者你可以根据需求选择其他处理方式
+                        result[field_name] = str(
+                            value) if value is not None else None  # 转换为字符串保存，如果为None，则为None (虽然前面已经判断过 None 了)
+                elif field_name in ["roi", "roi_offset"] and isinstance(value,
+                                                                        str) and value.strip() != "" and value is not None:
                     try:
-                        parsed_value = json.loads(value) # 尝试将字符串解析为 JSON
+                        # Attempt to parse the string as JSON
+                        parsed_value = json.loads(value)
                         if isinstance(parsed_value, list) and all(isinstance(x, int) for x in parsed_value):
                             value = parsed_value
                         else:
@@ -115,7 +135,8 @@ class TaskNode:
                     except (json.JSONDecodeError, ValueError):
                         raise ValueError(
                             f"Invalid format for {field_name}: {value}. Expected a JSON-style list of integers.")
-                result[field_name] = value
+                else:
+                    result[field_name] = value
         return result
 
     @classmethod
